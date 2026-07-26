@@ -4,10 +4,11 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 
 @Injectable()
 export class CustomersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.customer.findMany();
+  async findAll() {
+    const customers = await this.prisma.customer.findMany();
+    return customers;
   }
 
   create(data: CreateCustomerDto) {
