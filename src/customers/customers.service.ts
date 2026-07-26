@@ -6,6 +6,6 @@ export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
   findAll() {
-    return 'All customers';
+    return this.prisma.customer.findMany();
   }
 }
