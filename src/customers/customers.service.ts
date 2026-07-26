@@ -51,4 +51,23 @@ export class CustomersService {
       throw error;
     }
   }
+
+  async remove(id: string) {
+    try {
+      return await this.prisma.customer.delete({
+        where: {
+          id,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Cliente no encontrado');
+      }
+
+      throw error;
+    }
+  }
 }
