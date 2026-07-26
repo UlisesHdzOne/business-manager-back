@@ -1,6 +1,8 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CustomersService {
@@ -28,5 +30,25 @@ export class CustomersService {
     return this.prisma.customer.create({
       data,
     });
+  }
+
+  async update(id: string, data: UpdateCustomerDto) {
+    try {
+      return await this.prisma.customer.update({
+        where: {
+          id,
+        },
+        data,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Cliente no encontrado');
+      }
+
+      throw error;
+    }
   }
 }
