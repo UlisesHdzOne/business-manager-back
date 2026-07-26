@@ -3,6 +3,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Prisma } from '@prisma/client';
+import { CustomerResponseDto } from './dto/customer-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class CustomersService {
@@ -10,7 +12,12 @@ export class CustomersService {
 
   async findAll() {
     const customers = await this.prisma.customer.findMany();
-    return customers;
+
+    return customers.map((customer) =>
+      plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
+      }),
+    );
   }
 
   async findOne(id: string) {
@@ -23,22 +30,32 @@ export class CustomersService {
     if (!customer) {
       throw new NotFoundException('Cliente no encontrado');
     }
-    return customer;
+    return plainToInstance(CustomerResponseDto, customer, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  create(data: CreateCustomerDto) {
-    return this.prisma.customer.create({
+  async create(data: CreateCustomerDto) {
+    const customer = await this.prisma.customer.create({
       data,
+    });
+
+    return plainToInstance(CustomerResponseDto, customer, {
+      excludeExtraneousValues: true,
     });
   }
 
   async update(id: string, data: UpdateCustomerDto) {
     try {
-      return await this.prisma.customer.update({
+      const customer = await this.prisma.customer.update({
         where: {
           id,
         },
         data,
+      });
+
+      return plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
       });
     } catch (error) {
       if (
@@ -54,10 +71,14 @@ export class CustomersService {
 
   async remove(id: string) {
     try {
-      return await this.prisma.customer.delete({
+      const customer = await this.prisma.customer.delete({
         where: {
           id,
         },
+      });
+
+      return plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
       });
     } catch (error) {
       if (
