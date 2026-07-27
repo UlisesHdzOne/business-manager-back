@@ -28,7 +28,10 @@ export class CustomersService {
     });
 
     if (!customer) {
-      throw new NotFoundException('Cliente no encontrado');
+      throw new NotFoundException({
+        message: 'Cliente no encontrado',
+        code: 'CUSTOMER_NOT_FOUND',
+      });
     }
     return plainToInstance(CustomerResponseDto, customer, {
       excludeExtraneousValues: true,
