@@ -6,12 +6,13 @@ import { Prisma } from '@prisma/client';
 import { CustomerResponseDto } from './dto/customer-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { successResponse } from '@/common/helpers/api-response.helper';
+import { ApiResponse } from '@/common/interfaces/api-response.interface';
 
 @Injectable()
 export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(): Promise<ApiResponse<CustomerResponseDto[]>> {
     const customers = await this.prisma.customer.findMany();
 
     const data = customers.map((customer) =>
@@ -23,7 +24,7 @@ export class CustomersService {
     return successResponse(data, 'Clientes obtenidos correctamente');
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<ApiResponse<CustomerResponseDto>> {
     const customer = await this.prisma.customer.findUnique({
       where: {
         id,
@@ -44,7 +45,9 @@ export class CustomersService {
     );
   }
 
-  async create(data: CreateCustomerDto) {
+  async create(
+    data: CreateCustomerDto,
+  ): Promise<ApiResponse<CustomerResponseDto>> {
     const customer = await this.prisma.customer.create({
       data,
     });
@@ -57,7 +60,10 @@ export class CustomersService {
     );
   }
 
-  async update(id: string, data: UpdateCustomerDto) {
+  async update(
+    id: string,
+    data: UpdateCustomerDto,
+  ): Promise<ApiResponse<CustomerResponseDto>> {
     try {
       const customer = await this.prisma.customer.update({
         where: {
@@ -87,7 +93,7 @@ export class CustomersService {
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<ApiResponse<CustomerResponseDto>> {
     try {
       const customer = await this.prisma.customer.delete({
         where: {
