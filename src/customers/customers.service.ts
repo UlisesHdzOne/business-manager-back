@@ -2,7 +2,6 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { Prisma } from '@prisma/client';
 import { CustomerResponseDto } from './dto/customer-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { successResponse } from '@/common/helpers/api-response.helper';
@@ -64,61 +63,33 @@ export class CustomersService {
     id: string,
     data: UpdateCustomerDto,
   ): Promise<ApiResponse<CustomerResponseDto>> {
-    try {
-      const customer = await this.prisma.customer.update({
-        where: {
-          id,
-        },
-        data,
-      });
+    const customer = await this.prisma.customer.update({
+      where: {
+        id,
+      },
+      data,
+    });
 
-      return successResponse(
-        plainToInstance(CustomerResponseDto, customer, {
-          excludeExtraneousValues: true,
-        }),
-        'Cliente actualizado correctamente',
-      );
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException({
-          message: 'Cliente no encontrado',
-          code: 'CUSTOMER_NOT_FOUND',
-        });
-      }
-
-      throw error;
-    }
+    return successResponse(
+      plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
+      }),
+      'Cliente actualizado correctamente',
+    );
   }
 
   async remove(id: string): Promise<ApiResponse<CustomerResponseDto>> {
-    try {
-      const customer = await this.prisma.customer.delete({
-        where: {
-          id,
-        },
-      });
+    const customer = await this.prisma.customer.delete({
+      where: {
+        id,
+      },
+    });
 
-      return successResponse(
-        plainToInstance(CustomerResponseDto, customer, {
-          excludeExtraneousValues: true,
-        }),
-        'Cliente eliminado correctamente',
-      );
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException({
-          message: 'Cliente no encontrado',
-          code: 'CUSTOMER_NOT_FOUND',
-        });
-      }
-
-      throw error;
-    }
+    return successResponse(
+      plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
+      }),
+      'Cliente eliminado correctamente',
+    );
   }
 }
