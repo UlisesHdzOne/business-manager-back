@@ -5,6 +5,7 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Prisma } from '@prisma/client';
 import { CustomerResponseDto } from './dto/customer-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { successResponse } from '@/common/helpers/api-response.helper';
 
 @Injectable()
 export class CustomersService {
@@ -13,11 +14,13 @@ export class CustomersService {
   async findAll() {
     const customers = await this.prisma.customer.findMany();
 
-    return customers.map((customer) =>
+    const data = customers.map((customer) =>
       plainToInstance(CustomerResponseDto, customer, {
         excludeExtraneousValues: true,
       }),
     );
+
+    return successResponse(data, 'Clientes obtenidos correctamente');
   }
 
   async findOne(id: string) {
@@ -33,9 +36,12 @@ export class CustomersService {
         code: 'CUSTOMER_NOT_FOUND',
       });
     }
-    return plainToInstance(CustomerResponseDto, customer, {
-      excludeExtraneousValues: true,
-    });
+    return successResponse(
+      plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
+      }),
+      'Cliente obtenido correctamente',
+    );
   }
 
   async create(data: CreateCustomerDto) {
@@ -43,9 +49,12 @@ export class CustomersService {
       data,
     });
 
-    return plainToInstance(CustomerResponseDto, customer, {
-      excludeExtraneousValues: true,
-    });
+    return successResponse(
+      plainToInstance(CustomerResponseDto, customer, {
+        excludeExtraneousValues: true,
+      }),
+      'Cliente creado correctamente',
+    );
   }
 
   async update(id: string, data: UpdateCustomerDto) {
@@ -57,15 +66,21 @@ export class CustomersService {
         data,
       });
 
-      return plainToInstance(CustomerResponseDto, customer, {
-        excludeExtraneousValues: true,
-      });
+      return successResponse(
+        plainToInstance(CustomerResponseDto, customer, {
+          excludeExtraneousValues: true,
+        }),
+        'Cliente actualizado correctamente',
+      );
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
-        throw new NotFoundException('Cliente no encontrado');
+        throw new NotFoundException({
+          message: 'Cliente no encontrado',
+          code: 'CUSTOMER_NOT_FOUND',
+        });
       }
 
       throw error;
@@ -80,15 +95,21 @@ export class CustomersService {
         },
       });
 
-      return plainToInstance(CustomerResponseDto, customer, {
-        excludeExtraneousValues: true,
-      });
+      return successResponse(
+        plainToInstance(CustomerResponseDto, customer, {
+          excludeExtraneousValues: true,
+        }),
+        'Cliente eliminado correctamente',
+      );
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
-        throw new NotFoundException('Cliente no encontrado');
+        throw new NotFoundException({
+          message: 'Cliente no encontrado',
+          code: 'CUSTOMER_NOT_FOUND',
+        });
       }
 
       throw error;
