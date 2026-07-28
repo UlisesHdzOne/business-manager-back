@@ -1,5 +1,5 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerResponseDto } from './dto/customer-response.dto';
@@ -24,18 +24,12 @@ export class CustomersService {
   }
 
   async findOne(id: string): Promise<ApiResponse<CustomerResponseDto>> {
-    const customer = await this.prisma.customer.findUnique({
+    const customer = await this.prisma.customer.findUniqueOrThrow({
       where: {
         id,
       },
     });
 
-    if (!customer) {
-      throw new NotFoundException({
-        message: 'Cliente no encontrado',
-        code: 'CUSTOMER_NOT_FOUND',
-      });
-    }
     return successResponse(
       plainToInstance(CustomerResponseDto, customer, {
         excludeExtraneousValues: true,
