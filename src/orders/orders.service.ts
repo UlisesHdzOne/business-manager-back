@@ -1,17 +1,31 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { successResponse } from '@/common/helpers/api-response.helper';
 import { OrderResponseDto } from './dto/order-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
+import { ErrorCode } from '@/common/enums/error-code.enum';
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateOrderDto): Promise<ApiResponse<OrderResponseDto>> {
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        id: dto.customerId,
+      },
+    });
+
+    if (!customer) {
+      throw new NotFoundException({
+        message: 'Cliente no encontrado',
+        code: ErrorCode.CUSTOMER_NOT_FOUND,
+      });
+    }
+
     const order = await this.prisma.order.create({
       data: {
         description: dto.description,
@@ -29,7 +43,14 @@ export class OrdersService {
   async findAll(): Promise<ApiResponse<OrderResponseDto[]>> {
     const orders = await this.prisma.order.findMany({
       include: {
-        customer: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -46,7 +67,14 @@ export class OrdersService {
     const order = await this.prisma.order.findUniqueOrThrow({
       where: { id },
       include: {
-        customer: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     });
 
