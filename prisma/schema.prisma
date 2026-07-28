@@ -12,4 +12,14 @@ model Customer {
   firstName  String
   lastName   String
   email      String    @unique
+ 
+  orders     Order[]
+}
+
+model Order {
+  id          String   @id @default(uuid())
+  description String
+  customerId  String
+  
+  customer    Customer @relation(fields: [customerId], references: [id])
 }
