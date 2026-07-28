@@ -27,7 +27,11 @@ export class OrdersService {
     );
   }
   async findAll(): Promise<ApiResponse<OrderResponseDto[]>> {
-    const orders = await this.prisma.order.findMany();
+    const orders = await this.prisma.order.findMany({
+      include: {
+        customer: true,
+      },
+    });
 
     return successResponse(
       orders.map((order) =>
@@ -41,6 +45,9 @@ export class OrdersService {
   async findOne(id: string): Promise<ApiResponse<OrderResponseDto>> {
     const order = await this.prisma.order.findUniqueOrThrow({
       where: { id },
+      include: {
+        customer: true,
+      },
     });
 
     return successResponse(
