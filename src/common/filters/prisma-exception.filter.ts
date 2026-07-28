@@ -21,6 +21,26 @@ export class PrismaExceptionFilter implements ExceptionFilter {
       return response.status(404).json(errorResponse);
     }
 
+    if (exception.code === PrismaErrorCode.UNIQUE_CONSTRAINT) {
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        message: 'El registro ya existe',
+        code: ErrorCode.DUPLICATE_RESOURCE,
+      };
+
+      return response.status(409).json(errorResponse);
+    }
+
+    if (exception.code === PrismaErrorCode.FOREIGN_KEY_CONSTRAINT) {
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        message: 'No se puede eliminar porque tiene registros relacionados',
+        code: ErrorCode.FOREIGN_KEY_ERROR,
+      };
+
+      return response.status(400).json(errorResponse);
+    }
+
     const errorResponse: ApiErrorResponse = {
       success: false,
       message: 'Error interno del servidor',

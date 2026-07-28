@@ -9,4 +9,7 @@ export class CustomerResponseDto {
 
   @Expose()
   lastName!: string;
+
+  @Expose()
+  email!: string;
 }
