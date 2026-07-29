@@ -1,10 +1,10 @@
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsOptional,
   MinLength,
   IsNumber,
   IsPositive,
-  Min,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -16,11 +16,13 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsPositive()
   price!: number;
 
+  @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @IsPositive()
   stock!: number;
 }

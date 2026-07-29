@@ -2,10 +2,10 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { successResponse } from '@/common/helpers/api-response.helper';
-import { plainToInstance } from 'class-transformer';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
+import { mapProduct, mapProducts } from './mappers/product.mapper';
 
 @Injectable()
 export class ProductsService {
@@ -23,15 +23,8 @@ export class ProductsService {
       },
     });
 
-    const parsed = {
-      ...product,
-      price: product.price.toNumber(),
-    };
-
     return successResponse(
-      plainToInstance(ProductResponseDto, parsed, {
-        excludeExtraneousValues: true,
-      }),
+      mapProduct(product),
       'Producto creado correctamente',
     );
   }
@@ -39,20 +32,10 @@ export class ProductsService {
   async findAll(): Promise<ApiResponse<ProductResponseDto[]>> {
     const products = await this.prisma.product.findMany();
 
-    const data = products.map((product) =>
-      plainToInstance(
-        ProductResponseDto,
-        {
-          ...product,
-          price: product.price.toNumber(),
-        },
-        {
-          excludeExtraneousValues: true,
-        },
-      ),
+    return successResponse(
+      mapProducts(products),
+      'Productos obtenidos correctamente',
     );
-
-    return successResponse(data, 'Productos obtenidos correctamente');
   }
 
   async findOne(id: string): Promise<ApiResponse<ProductResponseDto>> {
@@ -61,16 +44,7 @@ export class ProductsService {
     });
 
     return successResponse(
-      plainToInstance(
-        ProductResponseDto,
-        {
-          ...product,
-          price: product.price.toNumber(),
-        },
-        {
-          excludeExtraneousValues: true,
-        },
-      ),
+      mapProduct(product),
       'Producto obtenido correctamente',
     );
   }
@@ -90,16 +64,7 @@ export class ProductsService {
     });
 
     return successResponse(
-      plainToInstance(
-        ProductResponseDto,
-        {
-          ...product,
-          price: product.price.toNumber(),
-        },
-        {
-          excludeExtraneousValues: true,
-        },
-      ),
+      mapProduct(product),
       'Producto actualizado correctamente',
     );
   }
@@ -110,16 +75,7 @@ export class ProductsService {
     });
 
     return successResponse(
-      plainToInstance(
-        ProductResponseDto,
-        {
-          ...product,
-          price: product.price.toNumber(),
-        },
-        {
-          excludeExtraneousValues: true,
-        },
-      ),
+      mapProduct(product),
       'Producto eliminado correctamente',
     );
   }
