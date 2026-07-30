@@ -6,7 +6,7 @@ import { OrderResponseDto } from './dto/order-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
-import { ErrorCode } from '@/common/enums/error-code.enum';
+import { CustomerErrorCode } from '@/customers/enums/customer-error-code.enum';
 
 @Injectable()
 export class OrdersService {
@@ -22,7 +22,7 @@ export class OrdersService {
     if (!customer) {
       throw new NotFoundException({
         message: 'Cliente no encontrado',
-        code: ErrorCode.CUSTOMER_NOT_FOUND,
+        code: CustomerErrorCode.CUSTOMER_NOT_FOUND,
       });
     }
 

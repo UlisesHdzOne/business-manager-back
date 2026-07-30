@@ -6,6 +6,9 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
 import { mapProduct, mapProducts } from './mappers/product.mapper';
+import { ProductQueryDto } from './dto/product-query.dto';
+import { Prisma } from '@prisma/client';
+import { PaginationMeta } from '@/common/interfaces/pagination-meta.interface';
 
 @Injectable()
 export class ProductsService {
@@ -29,12 +32,46 @@ export class ProductsService {
     );
   }
 
-  async findAll(): Promise<ApiResponse<ProductResponseDto[]>> {
-    const products = await this.prisma.product.findMany();
+  async findAll(
+    query: ProductQueryDto,
+  ): Promise<ApiResponse<ProductResponseDto[], PaginationMeta>> {
+    const { page = 1, limit = 10, name, minPrice, maxPrice } = query;
+
+    const where: Prisma.ProductWhereInput = {};
+
+    if (name) {
+      where.name = {
+        contains: name,
+        mode: Prisma.QueryMode.insensitive,
+      };
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      where.price = {
+        ...(minPrice !== undefined && { gte: minPrice }),
+        ...(maxPrice !== undefined && { lte: maxPrice }),
+      };
+    }
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    const meta: PaginationMeta = {
+      total,
+      page,
+      lastPage: Math.ceil(total / limit),
+    };
 
     return successResponse(
       mapProducts(products),
       'Productos obtenidos correctamente',
+      meta,
     );
   }
 
