@@ -1,5 +1,9 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { successResponse } from '@/common/helpers/api-response.helper';
 import { OrderResponseDto } from './dto/order-response.dto';
@@ -8,6 +12,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
 import { CustomerErrorCode } from '@/customers/enums/customer-error-code.enum';
 import { mapOrder, mapOrders } from './mappers/order.mapper';
+import { ProductErrorCode } from '@/products/enums/product-error-code.enum';
 
 @Injectable()
 export class OrdersService {
@@ -38,12 +43,33 @@ export class OrdersService {
     });
 
     if (products.length !== dto.items.length) {
-      throw new NotFoundException('Uno o más productos no existen');
+      throw new NotFoundException({
+        message: 'Uno o más productos no existen',
+        code: ProductErrorCode.PRODUCT_NOT_FOUND,
+      });
     }
 
     const productMap = new Map(
       products.map((product) => [product.id, product]),
     );
+
+    for (const item of dto.items) {
+      const product = productMap.get(item.productId);
+
+      if (!product) {
+        throw new NotFoundException({
+          message: 'Producto no encontrado',
+          code: ProductErrorCode.PRODUCT_NOT_FOUND,
+        });
+      }
+
+      if (product.stock < item.quantity) {
+        throw new BadRequestException({
+          message: `Stock insuficiente para ${product.name}`,
+          code: ProductErrorCode.INSUFFICIENT_STOCK,
+        });
+      }
+    }
 
     const order = await this.prisma.order.create({
       data: {
@@ -54,7 +80,10 @@ export class OrdersService {
             const product = productMap.get(item.productId);
 
             if (!product) {
-              throw new NotFoundException('Producto no encontrado');
+              throw new NotFoundException({
+                message: 'Producto no encontrado',
+                code: ProductErrorCode.PRODUCT_NOT_FOUND,
+              });
             }
 
             return {
