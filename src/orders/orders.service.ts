@@ -71,32 +71,42 @@ export class OrdersService {
       }
     }
 
-    const order = await this.prisma.order.create({
-      data: {
-        description: dto.description,
-        customerId: dto.customerId,
-        items: {
-          create: dto.items.map((item) => {
-            const product = productMap.get(item.productId);
+    const order = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          description: dto.description,
+          customerId: dto.customerId,
+          items: {
+            create: dto.items.map((item) => {
+              const product = productMap.get(item.productId)!;
 
-            if (!product) {
-              throw new NotFoundException({
-                message: 'Producto no encontrado',
-                code: ProductErrorCode.PRODUCT_NOT_FOUND,
-              });
-            }
-
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              price: product.price,
-            };
-          }),
+              return {
+                productId: item.productId,
+                quantity: item.quantity,
+                price: product.price,
+              };
+            }),
+          },
         },
-      },
-      include: {
-        items: true,
-      },
+        include: {
+          items: true,
+        },
+      });
+
+      for (const item of dto.items) {
+        await tx.product.update({
+          where: {
+            id: item.productId,
+          },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      return order;
     });
     //solo para referencia no borrar
     //console.log(JSON.stringify(order, null, 2));
