@@ -7,6 +7,7 @@ import { plainToInstance } from 'class-transformer';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
 import { CustomerErrorCode } from '@/customers/enums/customer-error-code.enum';
+import { mapOrder, mapOrders } from './mappers/order.mapper';
 
 @Injectable()
 export class OrdersService {
@@ -26,36 +27,68 @@ export class OrdersService {
       });
     }
 
+    const productIds = dto.items.map((item) => item.productId);
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: {
+          in: productIds,
+        },
+      },
+    });
+
+    if (products.length !== dto.items.length) {
+      throw new NotFoundException('Uno o más productos no existen');
+    }
+
+    const productMap = new Map(
+      products.map((product) => [product.id, product]),
+    );
+
     const order = await this.prisma.order.create({
       data: {
         description: dto.description,
         customerId: dto.customerId,
+        items: {
+          create: dto.items.map((item) => {
+            const product = productMap.get(item.productId);
+
+            if (!product) {
+              throw new NotFoundException('Producto no encontrado');
+            }
+
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              price: product.price,
+            };
+          }),
+        },
+      },
+      include: {
+        items: true,
       },
     });
+    //solo para referencia no borrar
+    //console.log(JSON.stringify(order, null, 2));
 
     return successResponse(
-      plainToInstance(OrderResponseDto, order, {
+      plainToInstance(OrderResponseDto, mapOrder(order), {
         excludeExtraneousValues: true,
       }),
       'Orden creada correctamente',
     );
   }
+
   async findAll(): Promise<ApiResponse<OrderResponseDto[]>> {
     const orders = await this.prisma.order.findMany({
       include: {
-        customer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
+        items: true,
       },
     });
 
     return successResponse(
-      orders.map((order) =>
+      mapOrders(orders).map((order) =>
         plainToInstance(OrderResponseDto, order, {
           excludeExtraneousValues: true,
         }),
@@ -63,53 +96,79 @@ export class OrdersService {
       'Órdenes obtenidas correctamente',
     );
   }
+
   async findOne(id: string): Promise<ApiResponse<OrderResponseDto>> {
     const order = await this.prisma.order.findUniqueOrThrow({
-      where: { id },
+      where: {
+        id,
+      },
       include: {
-        customer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
+        items: true,
       },
     });
 
     return successResponse(
-      plainToInstance(OrderResponseDto, order, {
+      plainToInstance(OrderResponseDto, mapOrder(order), {
         excludeExtraneousValues: true,
       }),
       'Orden obtenida correctamente',
     );
   }
+
   async update(
     id: string,
     dto: UpdateOrderDto,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const order = await this.prisma.order.update({
-      where: { id },
+      where: {
+        id,
+      },
       data: {
-        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.description !== undefined && {
+          description: dto.description,
+        }),
+      },
+      include: {
+        items: true,
       },
     });
 
     return successResponse(
-      plainToInstance(OrderResponseDto, order, {
+      plainToInstance(OrderResponseDto, mapOrder(order), {
         excludeExtraneousValues: true,
       }),
       'Orden actualizada correctamente',
     );
   }
+
   async remove(id: string): Promise<ApiResponse<OrderResponseDto>> {
-    const order = await this.prisma.order.delete({
-      where: { id },
+    const order = await this.prisma.$transaction(async (tx) => {
+      const items = await tx.orderItem.findMany({
+        where: {
+          orderId: id,
+        },
+      });
+
+      await tx.orderItem.deleteMany({
+        where: {
+          orderId: id,
+        },
+      });
+
+      const deletedOrder = await tx.order.delete({
+        where: {
+          id,
+        },
+      });
+
+      return {
+        ...deletedOrder,
+        items,
+      };
     });
 
     return successResponse(
-      plainToInstance(OrderResponseDto, order, {
+      plainToInstance(OrderResponseDto, mapOrder(order), {
         excludeExtraneousValues: true,
       }),
       'Orden eliminada correctamente',

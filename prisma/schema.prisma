@@ -22,6 +22,7 @@ model Order {
   customerId  String
   
   customer    Customer @relation(fields: [customerId], references: [id])
+  items       OrderItem[]
 }
 
 model Product {
@@ -32,4 +33,17 @@ model Product {
   stock       Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal
+
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }

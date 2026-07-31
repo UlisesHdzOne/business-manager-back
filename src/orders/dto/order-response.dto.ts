@@ -1,5 +1,5 @@
-import { CustomerResponseDto } from '@/customers/dto/customer-response.dto';
 import { Expose, Type } from 'class-transformer';
+import { OrderItemDto } from './order-Item.dto';
 
 export class OrderResponseDto {
   @Expose()
@@ -12,6 +12,6 @@ export class OrderResponseDto {
   customerId!: string;
 
   @Expose()
-  @Type(() => CustomerResponseDto)
-  customer!: CustomerResponseDto;
+  @Type(() => OrderItemDto)
+  items!: OrderItemDto[];
 }
