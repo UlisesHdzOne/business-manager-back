@@ -6,6 +6,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
 
 model Customer {
   id         String    @id @default(uuid())
@@ -20,6 +25,8 @@ model Order {
   id          String   @id @default(uuid())
   description String
   customerId  String
+  status      OrderStatus @default(PENDING)
+  total       Decimal @default(0)
   
   customer    Customer @relation(fields: [customerId], references: [id])
   items       OrderItem[]

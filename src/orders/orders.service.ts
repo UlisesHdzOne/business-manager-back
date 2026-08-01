@@ -12,74 +12,59 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { ApiResponse } from '@/common/interfaces/api-response.interface';
 import { CustomerErrorCode } from '@/customers/enums/customer-error-code.enum';
 import { mapOrder, mapOrders } from './mappers/order.mapper';
-import { ProductErrorCode } from '@/products/enums/product-error-code.enum';
+import { OrderStatus } from '@prisma/client';
+
+import {
+  validateAndCalculateTotal,
+  decrementStock,
+  incrementStock,
+} from './helpers/stock.helper';
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateOrderDto): Promise<ApiResponse<OrderResponseDto>> {
-    const customer = await this.prisma.customer.findUnique({
-      where: {
-        id: dto.customerId,
-      },
-    });
+  async create(createOrderDto: CreateOrderDto) {
+    const { customerId, description, items } = createOrderDto;
 
-    if (!customer) {
-      throw new NotFoundException({
-        message: 'Cliente no encontrado',
-        code: CustomerErrorCode.CUSTOMER_NOT_FOUND,
+    return this.prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.findUnique({
+        where: { id: customerId },
       });
-    }
 
-    const productIds = dto.items.map((item) => item.productId);
-
-    const products = await this.prisma.product.findMany({
-      where: {
-        id: {
-          in: productIds,
-        },
-      },
-    });
-
-    if (products.length !== dto.items.length) {
-      throw new NotFoundException({
-        message: 'Uno o más productos no existen',
-        code: ProductErrorCode.PRODUCT_NOT_FOUND,
-      });
-    }
-
-    const productMap = new Map(
-      products.map((product) => [product.id, product]),
-    );
-
-    for (const item of dto.items) {
-      const product = productMap.get(item.productId);
-
-      if (!product) {
+      if (!customer) {
         throw new NotFoundException({
-          message: 'Producto no encontrado',
-          code: ProductErrorCode.PRODUCT_NOT_FOUND,
+          message: 'Cliente no encontrado',
+          code: CustomerErrorCode.CUSTOMER_NOT_FOUND,
         });
       }
 
-      if (product.stock < item.quantity) {
-        throw new BadRequestException({
-          message: `Stock insuficiente para ${product.name}`,
-          code: ProductErrorCode.INSUFFICIENT_STOCK,
+      const productIds = items.map((item) => item.productId);
+
+      const products = await tx.product.findMany({
+        where: { id: { in: productIds } },
+      });
+
+      if (products.length !== productIds.length) {
+        throw new NotFoundException({
+          message: 'Uno o más productos no existen',
         });
       }
-    }
 
-    const order = await this.prisma.$transaction(async (tx) => {
+      const productMap = new Map(
+        products.map((product) => [product.id, product]),
+      );
+
+      const total = validateAndCalculateTotal(items, productMap);
+
       const order = await tx.order.create({
         data: {
-          description: dto.description,
-          customerId: dto.customerId,
+          customerId,
+          description,
+          total,
           items: {
-            create: dto.items.map((item) => {
+            create: items.map((item) => {
               const product = productMap.get(item.productId)!;
-
               return {
                 productId: item.productId,
                 quantity: item.quantity,
@@ -88,42 +73,18 @@ export class OrdersService {
             }),
           },
         },
-        include: {
-          items: true,
-        },
+        include: { items: true },
       });
 
-      for (const item of dto.items) {
-        await tx.product.update({
-          where: {
-            id: item.productId,
-          },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
+      await decrementStock(tx, items);
 
       return order;
     });
-    //solo para referencia no borrar
-    //console.log(JSON.stringify(order, null, 2));
-
-    return successResponse(
-      plainToInstance(OrderResponseDto, mapOrder(order), {
-        excludeExtraneousValues: true,
-      }),
-      'Orden creada correctamente',
-    );
   }
 
   async findAll(): Promise<ApiResponse<OrderResponseDto[]>> {
     const orders = await this.prisma.order.findMany({
-      include: {
-        items: true,
-      },
+      include: { items: true },
     });
 
     return successResponse(
@@ -137,14 +98,14 @@ export class OrdersService {
   }
 
   async findOne(id: string): Promise<ApiResponse<OrderResponseDto>> {
-    const order = await this.prisma.order.findUniqueOrThrow({
-      where: {
-        id,
-      },
-      include: {
-        items: true,
-      },
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
     });
+
+    if (!order) {
+      throw new NotFoundException({ message: 'Orden no encontrada' });
+    }
 
     return successResponse(
       plainToInstance(OrderResponseDto, mapOrder(order), {
@@ -158,22 +119,32 @@ export class OrdersService {
     id: string,
     dto: UpdateOrderDto,
   ): Promise<ApiResponse<OrderResponseDto>> {
-    const order = await this.prisma.order.update({
-      where: {
-        id,
-      },
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new NotFoundException({ message: 'Orden no encontrada' });
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException({
+        message: 'Solo puedes editar órdenes pendientes',
+      });
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id },
       data: {
         ...(dto.description !== undefined && {
           description: dto.description,
         }),
       },
-      include: {
-        items: true,
-      },
+      include: { items: true },
     });
 
     return successResponse(
-      plainToInstance(OrderResponseDto, mapOrder(order), {
+      plainToInstance(OrderResponseDto, mapOrder(updated), {
         excludeExtraneousValues: true,
       }),
       'Orden actualizada correctamente',
@@ -181,36 +152,118 @@ export class OrdersService {
   }
 
   async remove(id: string): Promise<ApiResponse<OrderResponseDto>> {
-    const order = await this.prisma.$transaction(async (tx) => {
-      const items = await tx.orderItem.findMany({
-        where: {
-          orderId: id,
-        },
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: { items: true },
       });
 
-      await tx.orderItem.deleteMany({
-        where: {
-          orderId: id,
-        },
-      });
+      if (!order) {
+        throw new NotFoundException({ message: 'Orden no encontrada' });
+      }
 
-      const deletedOrder = await tx.order.delete({
-        where: {
-          id,
-        },
-      });
+      if (order.status === OrderStatus.COMPLETED) {
+        throw new BadRequestException({
+          message: 'No puedes eliminar una orden completada',
+        });
+      }
 
-      return {
-        ...deletedOrder,
-        items,
-      };
+      if (order.status !== OrderStatus.CANCELLED) {
+        await incrementStock(
+          tx,
+          order.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        );
+      }
+
+      return tx.order.delete({
+        where: { id },
+        include: { items: true },
+      });
     });
 
     return successResponse(
-      plainToInstance(OrderResponseDto, mapOrder(order), {
+      plainToInstance(OrderResponseDto, mapOrder(deleted), {
         excludeExtraneousValues: true,
       }),
       'Orden eliminada correctamente',
+    );
+  }
+
+  async complete(id: string): Promise<ApiResponse<OrderResponseDto>> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) {
+      throw new NotFoundException({ message: 'Orden no encontrada' });
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException({
+        message: 'Solo puedes completar órdenes pendientes',
+      });
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id },
+      data: { status: OrderStatus.COMPLETED },
+      include: { items: true },
+    });
+
+    return successResponse(
+      plainToInstance(OrderResponseDto, mapOrder(updated), {
+        excludeExtraneousValues: true,
+      }),
+      'Orden completada correctamente',
+    );
+  }
+
+  async cancel(id: string): Promise<ApiResponse<OrderResponseDto>> {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+
+      if (!order) {
+        throw new NotFoundException({ message: 'Orden no encontrada' });
+      }
+
+      if (order.status === OrderStatus.CANCELLED) {
+        throw new BadRequestException({
+          message: 'La orden ya está cancelada',
+        });
+      }
+
+      if (order.status === OrderStatus.COMPLETED) {
+        throw new BadRequestException({
+          message: 'No puedes cancelar una orden completada',
+        });
+      }
+
+      await incrementStock(
+        tx,
+        order.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+        })),
+      );
+
+      return tx.order.update({
+        where: { id },
+        data: { status: OrderStatus.CANCELLED },
+        include: { items: true },
+      });
+    });
+
+    return successResponse(
+      plainToInstance(OrderResponseDto, mapOrder(updated), {
+        excludeExtraneousValues: true,
+      }),
+      'Orden cancelada correctamente',
     );
   }
 }

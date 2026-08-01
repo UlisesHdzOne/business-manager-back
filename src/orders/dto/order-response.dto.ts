@@ -12,6 +12,12 @@ export class OrderResponseDto {
   customerId!: string;
 
   @Expose()
+  status!: string;
+
+  @Expose()
+  total!: string;
+
+  @Expose()
   @Type(() => OrderItemDto)
   items!: OrderItemDto[];
 }
