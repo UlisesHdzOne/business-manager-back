@@ -5,6 +5,12 @@ import { Injectable } from '@nestjs/common';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
   findAll() {
-    return this.prisma.user.findMany();
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
   }
 }
