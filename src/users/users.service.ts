@@ -11,6 +11,9 @@ export class UsersService {
         firstName: true,
         lastName: true,
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
 }
