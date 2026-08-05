@@ -2,7 +2,6 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { handlePrismaError } from '@/common/handlers/prisma-error.handler';
 
 @Injectable()
 export class UsersService {
@@ -33,32 +32,20 @@ export class UsersService {
     return user;
   }
   async create(createUserDto: CreateUserDto) {
-    try {
-      return await this.prisma.user.create({
-        data: createUserDto,
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    return await this.prisma.user.create({
+      data: createUserDto,
+    });
   }
   async update(id: string, updateUserDto: UpdateUserDto) {
-    try {
-      return await this.prisma.user.update({
-        where: { id },
-        data: updateUserDto,
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    return await this.prisma.user.update({
+      where: { id },
+      data: updateUserDto,
+    });
   }
 
   async delete(id: string) {
-    try {
-      return await this.prisma.user.delete({
-        where: { id },
-      });
-    } catch (error) {
-      handlePrismaError(error);
-    }
+    return await this.prisma.user.delete({
+      where: { id },
+    });
   }
 }
