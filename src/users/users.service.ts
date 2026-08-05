@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
   findAll() {
     return this.prisma.user.findMany({
       select: {
@@ -42,7 +43,18 @@ export class UsersService {
         data: createUserDto,
       });
     } catch (error) {
-      throw new BadRequestException('No se pudo crear el usuario');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const field = error.meta?.target as string[] | undefined;
+          const fieldName = field?.join(', ') ?? 'dato';
+
+          throw new BadRequestException({
+            message: 'Dato duplicado',
+            field: fieldName,
+          });
+        }
+      }
+      throw error;
     }
   }
 
@@ -53,7 +65,22 @@ export class UsersService {
         data: updateUserDto,
       });
     } catch (error) {
-      throw new NotFoundException('Usuario no encontrado');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Usuario no encontrado');
+        }
+
+        if (error.code === 'P2002') {
+          const field = error.meta?.target as string[] | undefined;
+          const fieldName = field?.join(', ') ?? 'dato';
+          throw new BadRequestException({
+            message: 'Dato duplicado',
+            field: fieldName,
+          });
+        }
+      }
+
+      throw error;
     }
   }
 
@@ -63,7 +90,13 @@ export class UsersService {
         where: { id },
       });
     } catch (error) {
-      throw new NotFoundException('Usuario no encontrado');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Usuario no encontrado');
+        }
+      }
+
+      throw error;
     }
   }
 }
