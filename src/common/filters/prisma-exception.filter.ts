@@ -6,6 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ErrorCode } from '../errors/error-codes';
+import { ErrorMessages } from '../errors/error-messages';
 
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
@@ -14,8 +16,8 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     switch (error.code) {
       case 'P2025':
         throw new NotFoundException({
-          message: 'Registro no encontrado',
-          code: error.code,
+          message: ErrorMessages[ErrorCode.NOT_FOUND],
+          code: ErrorCode.NOT_FOUND,
         });
 
       case 'P2002': {
@@ -63,16 +65,16 @@ export class PrismaExceptionFilter implements ExceptionFilter {
         }
 
         throw new BadRequestException({
-          message: 'Dato duplicado',
+          message: ErrorMessages[ErrorCode.DUPLICATE_RESOURCE],
           field,
-          code: error.code,
+          code: ErrorCode.DUPLICATE_RESOURCE,
         });
       }
 
       default:
         throw new BadRequestException({
-          message: 'Error en base de datos',
-          code: error.code,
+          message: ErrorMessages[ErrorCode.DATABASE_ERROR],
+          code: ErrorCode.DATABASE_ERROR,
         });
     }
   }
