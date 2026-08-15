@@ -1,17 +1,21 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { normalizeName } from '@/common/utils/normalize-name';
+import { normalizePhone } from '@/common/utils/normalize-phone';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
   findAll() {
     return this.prisma.user.findMany({
       select: {
         id: true,
         firstName: true,
         lastName: true,
+        phone: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -19,32 +23,63 @@ export class UsersService {
     });
   }
 
-  async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        id,
+  findOne(id: string) {
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id },
+    });
+  }
+
+  async create(createUserDto: CreateUserDto) {
+    const firstName = normalizeName(createUserDto.firstName);
+    const lastName = normalizeName(createUserDto.lastName);
+    const phone = normalizePhone(createUserDto.phone);
+
+    return this.prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        ...(phone !== undefined && { phone }),
       },
     });
+  }
 
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-    return user;
-  }
-  async create(createUserDto: CreateUserDto) {
-    return await this.prisma.user.create({
-      data: createUserDto,
-    });
-  }
   async update(id: string, updateUserDto: UpdateUserDto) {
-    return await this.prisma.user.update({
+    const firstName =
+      updateUserDto.firstName !== undefined
+        ? normalizeName(updateUserDto.firstName)
+        : undefined;
+
+    const lastName =
+      updateUserDto.lastName !== undefined
+        ? normalizeName(updateUserDto.lastName)
+        : undefined;
+
+    const phone =
+      updateUserDto.phone !== undefined
+        ? normalizePhone(updateUserDto.phone)
+        : undefined;
+
+    const data = {
+      ...(firstName !== undefined && { firstName }),
+      ...(lastName !== undefined && { lastName }),
+      ...(phone !== undefined && { phone }),
+      ...(updateUserDto.phone === null && { phone: null }),
+    };
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException(
+        'Debe enviar al menos un campo para actualizar',
+      );
+    }
+
+    return this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data,
     });
   }
 
-  async delete(id: string) {
-    return await this.prisma.user.delete({
+  delete(id: string) {
+    return this.prisma.user.delete({
       where: { id },
     });
   }
