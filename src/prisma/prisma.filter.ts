@@ -19,7 +19,7 @@ const prismaErrors: Record<
   },
 };
 
-@Catch()
+@Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
