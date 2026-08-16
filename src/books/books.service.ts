@@ -1,12 +1,7 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BooksService {
@@ -16,21 +11,10 @@ export class BooksService {
     return this.prisma.book.findMany();
   }
 
-  async create(dto: CreateBookDto) {
-    try {
-      const book = await this.prisma.book.create({
-        data: dto,
-      });
-
-      return book;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException('Book title already exists');
-        }
-      }
-      throw error;
-    }
+  create(dto: CreateBookDto) {
+    return this.prisma.book.create({
+      data: dto,
+    });
   }
 
   async findOne(id: string) {
@@ -47,36 +31,16 @@ export class BooksService {
     return book;
   }
 
-  async update(id: string, dto: UpdateBookDto) {
-    try {
-      const book = await this.prisma.book.update({
-        where: { id },
-        data: dto,
-      });
-      return book;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException('Book not found');
-        }
-      }
-      throw error;
-    }
+  update(id: string, dto: UpdateBookDto) {
+    return this.prisma.book.update({
+      where: { id },
+      data: dto,
+    });
   }
 
-  async delete(id: string) {
-    try {
-      const book = await this.prisma.book.delete({
-        where: { id },
-      });
-      return book;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException('Book not found');
-        }
-      }
-      throw error;
-    }
+  delete(id: string) {
+    return this.prisma.book.delete({
+      where: { id },
+    });
   }
 }
