@@ -8,7 +8,7 @@ datasource db {
 
 model Book {
   id          String   @id @default(uuid())
-  title       String   @unique
+  title       String   
   author      String
   available   Boolean
   description String?
