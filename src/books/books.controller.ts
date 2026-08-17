@@ -6,17 +6,19 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
+import { BookQueryDto } from './dto/book-query.dto';
 
 @Controller('books')
 export class BooksController {
   constructor(private booksService: BooksService) {}
   @Get()
-  findAll() {
-    return this.booksService.findAll();
+  findAll(@Query() query: BookQueryDto) {
+    return this.booksService.findAll(query);
   }
   @Post()
   create(@Body() dto: CreateBookDto) {

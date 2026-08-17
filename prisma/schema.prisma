@@ -6,10 +6,12 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model Book {
-  id        String  @id @default(uuid())
-  title     String  @unique
-  author    String
-  available Boolean
+  id          String   @id @default(uuid())
+  title       String   @unique
+  author      String
+  available   Boolean
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
