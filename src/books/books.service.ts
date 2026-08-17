@@ -16,23 +16,51 @@ type BookListItem = Prisma.BookGetPayload<{
   select: typeof bookSelect;
 }>;
 
+type PaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  lastPage: number;
+};
+
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(query: BookQueryDto): Promise<BookListItem[]> {
+  async findAll(query: BookQueryDto): Promise<{
+    books: BookListItem[];
+    meta: PaginationMeta;
+  }> {
     const { page, limit } = query;
-    return this.prisma.book.findMany({
-      select: bookSelect,
-      orderBy: {
-        createdAt: 'asc',
-      },
-      where: {
-        available: true,
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+
+    const [books, total] = await Promise.all([
+      this.prisma.book.findMany({
+        select: bookSelect,
+        orderBy: {
+          createdAt: 'asc',
+        },
+        where: {
+          available: true,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.book.count({
+        where: {
+          available: true,
+        },
+      }),
+    ]);
+    const lastPage = Math.ceil(total / limit);
+
+    const meta = {
+      total,
+      page,
+      limit,
+      lastPage,
+    };
+
+    return { books, meta };
   }
 
   create(dto: CreateBookDto): Promise<Book> {
