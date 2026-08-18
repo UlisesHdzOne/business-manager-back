@@ -27,28 +27,54 @@ type PaginationMeta = {
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private buildWhere(query: BookQueryDto): Prisma.BookWhereInput {
+    const { available, title } = query;
+
+    const where: Prisma.BookWhereInput = {};
+
+    if (available !== undefined) {
+      where.available = available;
+    }
+
+    if (title !== undefined) {
+      where.title = {
+        contains: title,
+        mode: 'insensitive',
+      };
+    }
+
+    return where;
+  }
+
+  private buildOrderBy(
+    query: BookQueryDto,
+  ): Prisma.BookOrderByWithRelationInput {
+    const { sortBy, order } = query;
+
+    return {
+      [sortBy]: order,
+    };
+  }
+
   async findAll(query: BookQueryDto): Promise<{
     books: BookListItem[];
     meta: PaginationMeta;
   }> {
     const { page, limit } = query;
 
+    const where = this.buildWhere(query);
+    const orderBy = this.buildOrderBy(query);
+
     const [books, total] = await Promise.all([
       this.prisma.book.findMany({
         select: bookSelect,
-        orderBy: {
-          createdAt: 'asc',
-        },
-        where: {
-          available: true,
-        },
+        orderBy,
+        where,
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.book.count({
-        where: {
-          available: true,
-        },
+        where,
       }),
     ]);
     const lastPage = Math.ceil(total / limit);
