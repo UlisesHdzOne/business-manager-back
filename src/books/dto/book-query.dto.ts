@@ -33,6 +33,13 @@ export class BookQueryDto {
   available?: boolean;
 
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+
+    const title = value.trim();
+
+    return title === '' ? undefined : title;
+  })
   @IsString()
   title?: string;
 
