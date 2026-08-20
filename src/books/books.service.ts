@@ -1,9 +1,11 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Book, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { BookQueryDto } from './dto/book-query.dto';
+import { BookResponseDto } from './dto/book-response.dto';
 
 const bookSelect = {
   id: true,
@@ -11,10 +13,6 @@ const bookSelect = {
   author: true,
   available: true,
 } satisfies Prisma.BookSelect;
-
-type BookListItem = Prisma.BookGetPayload<{
-  select: typeof bookSelect;
-}>;
 
 type PaginationMeta = {
   total: number;
@@ -57,7 +55,7 @@ export class BooksService {
   }
 
   async findAll(query: BookQueryDto): Promise<{
-    books: BookListItem[];
+    books: BookResponseDto[];
     meta: PaginationMeta;
   }> {
     const { page, limit } = query;
@@ -86,16 +84,23 @@ export class BooksService {
       lastPage,
     };
 
-    return { books, meta };
+    const booksResponse = plainToInstance(BookResponseDto, books, {
+      excludeExtraneousValues: true,
+    });
+
+    return { books: booksResponse, meta };
   }
 
-  create(dto: CreateBookDto): Promise<Book> {
-    return this.prisma.book.create({
+  async create(dto: CreateBookDto): Promise<BookResponseDto> {
+    const book = await this.prisma.book.create({
       data: dto,
+    });
+    return plainToInstance(BookResponseDto, book, {
+      excludeExtraneousValues: true,
     });
   }
 
-  async findOne(id: string): Promise<Book> {
+  async findOne(id: string): Promise<BookResponseDto> {
     const book = await this.prisma.book.findUnique({
       where: {
         id,
@@ -106,18 +111,24 @@ export class BooksService {
       throw new NotFoundException('Book not found');
     }
 
-    return book;
-  }
-
-  update(id: string, dto: UpdateBookDto): Promise<Book> {
-    return this.prisma.book.update({
-      where: { id },
-      data: dto,
+    return plainToInstance(BookResponseDto, book, {
+      excludeExtraneousValues: true,
     });
   }
 
-  delete(id: string): Promise<Book> {
-    return this.prisma.book.delete({
+  async update(id: string, dto: UpdateBookDto): Promise<BookResponseDto> {
+    const book = await this.prisma.book.update({
+      where: { id },
+      data: dto,
+    });
+
+    return plainToInstance(BookResponseDto, book, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.book.delete({
       where: { id },
     });
   }

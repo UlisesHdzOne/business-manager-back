@@ -7,6 +7,7 @@ import {
   Patch,
   Delete,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -35,6 +36,7 @@ export class BooksController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   delete(@Param('id') id: string) {
     return this.booksService.delete(id);
   }
