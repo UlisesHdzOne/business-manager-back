@@ -8,12 +8,15 @@ import {
   Delete,
   Query,
   HttpCode,
+  UseInterceptors,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { BookQueryDto } from './dto/book-query.dto';
+import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
 
+@UseInterceptors(ResponseInterceptor)
 @Controller('books')
 export class BooksController {
   constructor(private booksService: BooksService) {}
