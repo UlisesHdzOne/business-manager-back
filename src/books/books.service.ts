@@ -1,5 +1,5 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Book, Prisma } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -20,6 +20,8 @@ type PaginationMeta = {
   limit: number;
   lastPage: number;
 };
+
+type BookResponseInput = Pick<Book, 'id' | 'title' | 'author' | 'available'>;
 
 @Injectable()
 export class BooksService {
@@ -54,6 +56,12 @@ export class BooksService {
     };
   }
 
+  private toResponse(book: BookResponseInput): BookResponseDto {
+    return plainToInstance(BookResponseDto, book, {
+      excludeExtraneousValues: true,
+    });
+  }
+
   async findAll(query: BookQueryDto): Promise<{
     books: BookResponseDto[];
     meta: PaginationMeta;
@@ -84,9 +92,7 @@ export class BooksService {
       lastPage,
     };
 
-    const booksResponse = plainToInstance(BookResponseDto, books, {
-      excludeExtraneousValues: true,
-    });
+    const booksResponse = books.map((book) => this.toResponse(book));
 
     return { books: booksResponse, meta };
   }
@@ -95,9 +101,7 @@ export class BooksService {
     const book = await this.prisma.book.create({
       data: dto,
     });
-    return plainToInstance(BookResponseDto, book, {
-      excludeExtraneousValues: true,
-    });
+    return this.toResponse(book);
   }
 
   async findOne(id: string): Promise<BookResponseDto> {
@@ -111,9 +115,7 @@ export class BooksService {
       throw new NotFoundException('Book not found');
     }
 
-    return plainToInstance(BookResponseDto, book, {
-      excludeExtraneousValues: true,
-    });
+    return this.toResponse(book);
   }
 
   async update(id: string, dto: UpdateBookDto): Promise<BookResponseDto> {
@@ -122,9 +124,7 @@ export class BooksService {
       data: dto,
     });
 
-    return plainToInstance(BookResponseDto, book, {
-      excludeExtraneousValues: true,
-    });
+    return this.toResponse(book);
   }
 
   async delete(id: string): Promise<void> {
