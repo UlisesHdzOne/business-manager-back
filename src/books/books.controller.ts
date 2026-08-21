@@ -19,7 +19,7 @@ import { ResponseInterceptor } from '@/common/interceptors/response.interceptor'
 @UseInterceptors(ResponseInterceptor)
 @Controller('books')
 export class BooksController {
-  constructor(private booksService: BooksService) {}
+  constructor(private readonly booksService: BooksService) {}
   @Get()
   findAll(@Query() query: BookQueryDto) {
     return this.booksService.findAll(query);

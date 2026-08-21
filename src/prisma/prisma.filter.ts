@@ -22,23 +22,18 @@ const prismaErrors: Record<
 
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
     const context = host.switchToHttp();
 
     const request = context.getRequest<Request>();
     const response = context.getResponse<Response>();
 
-    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      const error = prismaErrors[exception.code];
+    const error = prismaErrors[exception.code];
 
-      if (!error) {
-        return sendError(request, response, 500, ['Internal server error']);
-      }
-
-      return sendError(request, response, error.status, error.message);
+    if (!error) {
+      return sendError(request, response, 500, ['Internal server error']);
     }
 
-    return sendError(request, response, 500, ['Internal server error']);
+    return sendError(request, response, error.status, error.message);
   }
-
 }

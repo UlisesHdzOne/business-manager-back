@@ -1,5 +1,5 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { Book, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -20,12 +20,13 @@ type PaginationMeta = {
   limit: number;
   lastPage: number;
 };
-
-type BookResponseInput = Pick<Book, 'id' | 'title' | 'author' | 'available'>;
+type BookResponseInput = Prisma.BookGetPayload<{
+  select: typeof bookSelect;
+}>;
 
 @Injectable()
 export class BooksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private buildWhere(query: BookQueryDto): Prisma.BookWhereInput {
     const { available, title } = query;
@@ -83,7 +84,7 @@ export class BooksService {
         where,
       }),
     ]);
-    const lastPage = Math.ceil(total / limit);
+    const lastPage = Math.max(1, Math.ceil(total / limit));
 
     const meta = {
       total,
