@@ -8,10 +8,21 @@ datasource db {
 
 model Book {
   id          String   @id @default(uuid())
-  title       String   
+  title       String
   author      String
   available   Boolean
   description String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }

@@ -6,6 +6,7 @@ import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { BookQueryDto } from './dto/book-query.dto';
 import { BookResponseDto } from './dto/book-response.dto';
+import { PaginationMeta } from '@/common/dto/pagination-meta.type';
 
 const bookSelect = {
   id: true,
@@ -14,19 +15,13 @@ const bookSelect = {
   available: true,
 } satisfies Prisma.BookSelect;
 
-type PaginationMeta = {
-  total: number;
-  page: number;
-  limit: number;
-  lastPage: number;
-};
 type BookResponseInput = Prisma.BookGetPayload<{
   select: typeof bookSelect;
 }>;
 
 @Injectable()
 export class BooksService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private buildWhere(query: BookQueryDto): Prisma.BookWhereInput {
     const { available, title } = query;

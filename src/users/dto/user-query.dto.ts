@@ -1,9 +1,12 @@
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { BookSortBy } from '../enums/book-sort-by.enum';
 import { BasePaginationDto } from '@/common/dto/base-pagination.dto';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { UserSortBy } from '../enums/user-sort-by.enum';
+import { Transform } from 'class-transformer';
 
-export class BookQueryDto extends BasePaginationDto {
+export class UserQueryDto extends BasePaginationDto {
+  @IsEnum(UserSortBy)
+  sortBy: UserSortBy = UserSortBy.CREATED_AT;
+
   @IsOptional()
   @Transform(({ value }: { value: unknown }) => {
     if (value === 'true') return true;
@@ -11,19 +14,16 @@ export class BookQueryDto extends BasePaginationDto {
     return value;
   })
   @IsBoolean()
-  available?: boolean;
+  active?: boolean;
 
   @IsOptional()
   @Transform(({ value }: { value: unknown }) => {
     if (typeof value !== 'string') return value;
 
-    const title = value.trim();
+    const name = value.trim();
 
-    return title === '' ? undefined : title;
+    return name === '' ? undefined : name;
   })
   @IsString()
-  title?: string;
-
-  @IsEnum(BookSortBy)
-  sortBy: BookSortBy = BookSortBy.CREATED_AT;
+  name?: string;
 }

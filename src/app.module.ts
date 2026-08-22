@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import Joi from 'joi';
 import { PrismaModule } from './prisma/prisma.module';
 import { BooksModule } from './books/books.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { BooksModule } from './books/books.module';
     }),
     PrismaModule,
     BooksModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],
