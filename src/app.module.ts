@@ -4,6 +4,7 @@ import Joi from 'joi';
 import { PrismaModule } from './prisma/prisma.module';
 import { BooksModule } from './books/books.module';
 import { UsersModule } from './users/users.module';
+import { AuthorsModule } from './authors/authors.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     BooksModule,
     UsersModule,
+    AuthorsModule,
   ],
   controllers: [],
   providers: [],
