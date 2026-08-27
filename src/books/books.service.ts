@@ -1,6 +1,10 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -11,8 +15,10 @@ import { PaginationMeta } from '@/common/dto/pagination-meta.type';
 const bookSelect = {
   id: true,
   title: true,
-  author: true,
+  authorId: true,
+  active: true,
   available: true,
+  inactiveReason: true,
 } satisfies Prisma.BookSelect;
 
 type BookResponseInput = Prisma.BookGetPayload<{
@@ -24,9 +30,13 @@ export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
 
   private buildWhere(query: BookQueryDto): Prisma.BookWhereInput {
-    const { available, title } = query;
+    const { active, available, title } = query;
 
     const where: Prisma.BookWhereInput = {};
+
+    if (active !== undefined) {
+      where.active = active;
+    }
 
     if (available !== undefined) {
       where.available = available;
@@ -55,6 +65,18 @@ export class BooksService {
   private toResponse(book: BookResponseInput): BookResponseDto {
     return plainToInstance(BookResponseDto, book, {
       excludeExtraneousValues: true,
+    });
+  }
+
+  private async findActiveAuthor(id: string): Promise<{ id: string } | null> {
+    return this.prisma.author.findUnique({
+      where: {
+        id,
+        active: true,
+      },
+      select: {
+        id: true,
+      },
     });
   }
 
@@ -94,6 +116,12 @@ export class BooksService {
   }
 
   async create(dto: CreateBookDto): Promise<BookResponseDto> {
+    const author = await this.findActiveAuthor(dto.authorId);
+
+    if (!author) {
+      throw new NotFoundException('Author not found');
+    }
+
     const book = await this.prisma.book.create({
       data: dto,
     });
@@ -102,9 +130,8 @@ export class BooksService {
 
   async findOne(id: string): Promise<BookResponseDto> {
     const book = await this.prisma.book.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
+      select: bookSelect,
     });
 
     if (!book) {
@@ -115,17 +142,93 @@ export class BooksService {
   }
 
   async update(id: string, dto: UpdateBookDto): Promise<BookResponseDto> {
-    const book = await this.prisma.book.update({
+    const book = await this.prisma.book.findUnique({
+      where: { id },
+      select: bookSelect,
+    });
+
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
+
+    if (dto.authorId !== undefined) {
+      const author = await this.findActiveAuthor(dto.authorId);
+
+      if (!author) {
+        throw new NotFoundException('Author not found');
+      }
+    }
+    const updatedBook = await this.prisma.book.update({
       where: { id },
       data: dto,
     });
 
-    return this.toResponse(book);
+    return this.toResponse(updatedBook);
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.book.delete({
+    const book = await this.prisma.book.findUnique({
       where: { id },
+      select: {
+        id: true,
+        active: true,
+      },
     });
+
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
+
+    if (!book.active) {
+      throw new BadRequestException('Book is already inactive');
+    }
+
+    await this.prisma.book.update({
+      where: { id },
+      data: {
+        active: false,
+        inactiveReason: 'MANUAL',
+      },
+    });
+  }
+
+  async restore(id: string): Promise<BookResponseDto> {
+    const book = await this.prisma.book.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        active: true,
+        authorId: true,
+      },
+    });
+
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
+
+    if (book.active) {
+      throw new BadRequestException('Book is already active');
+    }
+
+    if (book.authorId) {
+      const author = await this.findActiveAuthor(book.authorId);
+
+      if (!author) {
+        throw new BadRequestException(
+          'Book cannot be restored because the author is inactive',
+        );
+      }
+    }
+
+    const restoredBook = await this.prisma.book.update({
+      where: { id },
+      data: {
+        active: true,
+        inactiveReason: null,
+      },
+      select: bookSelect,
+    });
+
+    return this.toResponse(restoredBook);
   }
 }

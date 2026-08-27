@@ -6,14 +6,23 @@ datasource db {
   provider = "postgresql"
 }
 
+enum BookInactiveReason {
+  AUTHOR_INACTIVE
+  MANUAL
+}
+
 model Book {
-  id          String   @id @default(uuid())
-  title       String
-  author      String
-  available   Boolean
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id             String   @id @default(uuid())
+  title          String
+  authorId       String?
+  active         Boolean  @default(true)
+  inactiveReason BookInactiveReason?
+  available      Boolean  @default(true)
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  author Author? @relation(fields: [authorId], references: [id])
 }
 
 model User {
@@ -35,4 +44,6 @@ model Author {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  books Book[]
 }

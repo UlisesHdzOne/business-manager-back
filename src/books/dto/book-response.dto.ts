@@ -8,8 +8,14 @@ export class BookResponseDto {
   title!: string;
 
   @Expose()
-  author!: string;
+  authorId!: string | null;
+
+  @Expose()
+  active!: boolean;
 
   @Expose()
   available!: boolean;
+
+  @Expose()
+  inactiveReason!: string | null;
 }

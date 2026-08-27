@@ -1,4 +1,4 @@
-import { IsBoolean, IsString, Length, Matches } from 'class-validator';
+import { IsBoolean, IsString, IsUUID, Length, Matches } from 'class-validator';
 
 export class CreateBookDto {
   @IsString({ message: 'El titulo debe ser texto' })
@@ -8,12 +8,8 @@ export class CreateBookDto {
   })
   title!: string;
 
-  @IsString({ message: 'El autor debe ser texto' })
-  @Length(2, 50, { message: 'El autor debe tener entre 2 y 50 caracteres' })
-  @Matches(/^[A-Za-záéíóúñÑ\s.]+$/, {
-    message: 'El autor solo puede contener letras, espacios y puntos',
-  })
-  author!: string;
+  @IsUUID('4', { message: 'El authorId debe ser un UUID válido' })
+  authorId!: string;
 
   @IsBoolean({ message: 'Disponible debe ser booleano' })
   available!: boolean;

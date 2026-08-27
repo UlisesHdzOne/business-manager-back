@@ -186,12 +186,25 @@ export class AuthorsService {
       throw new BadRequestException('Author is already inactive');
     }
 
-    await this.prisma.author.update({
-      where: { id },
-      data: {
-        active: false,
-      },
-    });
+    await this.prisma.$transaction([
+      this.prisma.author.update({
+        where: { id },
+        data: {
+          active: false,
+        },
+      }),
+
+      this.prisma.book.updateMany({
+        where: {
+          authorId: id,
+          active: true,
+        },
+        data: {
+          active: false,
+          inactiveReason: 'AUTHOR_INACTIVE',
+        },
+      }),
+    ]);
   }
 
   async restore(id: string): Promise<AuthorResponseDto> {
@@ -208,14 +221,31 @@ export class AuthorsService {
       throw new BadRequestException('Author is already active');
     }
 
-    const restoredAuthor = await this.prisma.author.update({
+    await this.prisma.$transaction([
+      this.prisma.author.update({
+        where: { id },
+        data: {
+          active: true,
+        },
+      }),
+
+      this.prisma.book.updateMany({
+        where: {
+          authorId: id,
+          inactiveReason: 'AUTHOR_INACTIVE',
+        },
+        data: {
+          active: true,
+          inactiveReason: null,
+        },
+      }),
+    ]);
+
+    const restoredAuthor = await this.prisma.author.findUnique({
       where: { id },
-      data: {
-        active: true,
-      },
       select: authorSelect,
     });
 
-    return this.toResponse(restoredAuthor);
+    return this.toResponse(restoredAuthor!);
   }
 }

@@ -15,22 +15,31 @@ import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { BookQueryDto } from './dto/book-query.dto';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { BookResponseDto } from './dto/book-response.dto';
 
 @UseInterceptors(ResponseInterceptor)
 @Controller('books')
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
+
   @Get()
   findAll(@Query() query: BookQueryDto) {
     return this.booksService.findAll(query);
   }
+
   @Post()
   create(@Body() dto: CreateBookDto) {
     return this.booksService.create(dto);
   }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.booksService.findOne(id);
+  }
+
+  @Patch(':id/restore')
+  restore(@Param('id') id: string): Promise<BookResponseDto> {
+    return this.booksService.restore(id);
   }
 
   @Patch(':id')
