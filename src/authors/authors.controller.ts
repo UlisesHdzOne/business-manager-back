@@ -36,6 +36,11 @@ export class AuthorsController {
     return this.authorsService.findAll(query);
   }
 
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.authorsService.restore(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateAuthorDto) {
     return this.authorsService.update(id, dto);
