@@ -12,17 +12,18 @@ enum BookInactiveReason {
 }
 
 model Book {
-  id             String   @id @default(uuid())
+  id             String              @id @default(uuid())
   title          String
   authorId       String?
-  active         Boolean  @default(true)
+  active         Boolean             @default(true)
   inactiveReason BookInactiveReason?
-  available      Boolean  @default(true)
+  available      Boolean             @default(true)
   description    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now()) @updatedAt
 
-  author Author? @relation(fields: [authorId], references: [id])
+  author         Author? @relation(fields: [authorId], references: [id])
+  loans          Loan[]
 }
 
 model User {
@@ -34,6 +35,8 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  loans     Loan[]
 }
 
 model Author {
@@ -45,5 +48,16 @@ model Author {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  books Book[]
+  books     Book[]
+}
+
+model Loan {
+  id         String    @id @default(uuid())
+  userId     String
+  bookId     String
+  loanDate   DateTime  @default(now())
+  returnDate DateTime?
+
+  user       User @relation(fields: [userId], references: [id])
+  book       Book @relation(fields: [bookId], references: [id])
 }

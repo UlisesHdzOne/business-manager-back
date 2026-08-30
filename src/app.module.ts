@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { BooksModule } from './books/books.module';
 import { UsersModule } from './users/users.module';
 import { AuthorsModule } from './authors/authors.module';
+import { LoansModule } from './loans/loans.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthorsModule } from './authors/authors.module';
     BooksModule,
     UsersModule,
     AuthorsModule,
+    LoansModule,
   ],
   controllers: [],
   providers: [],
