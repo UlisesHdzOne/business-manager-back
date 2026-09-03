@@ -1,7 +1,7 @@
-import { BaseUserResponseDto } from '@/common/dto/base-user-response.dto';
+import { BasePersonResponseDto } from '@/common/dto/base-person-response.dto';
 import { Expose } from 'class-transformer';
 
-export class UserResponseDto extends BaseUserResponseDto {
+export class UserResponseDto extends BasePersonResponseDto {
   @Expose()
   phone!: string;
 }

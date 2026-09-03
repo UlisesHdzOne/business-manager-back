@@ -22,24 +22,19 @@ import { BookResponseDto } from './dto/book-response.dto';
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
-  @Get()
-  findAll(@Query() query: BookQueryDto) {
-    return this.booksService.findAll(query);
-  }
-
   @Post()
   create(@Body() dto: CreateBookDto) {
     return this.booksService.create(dto);
   }
 
+  @Get()
+  findAll(@Query() query: BookQueryDto) {
+    return this.booksService.findAll(query);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.booksService.findOne(id);
-  }
-
-  @Patch(':id/restore')
-  restore(@Param('id') id: string): Promise<BookResponseDto> {
-    return this.booksService.restore(id);
   }
 
   @Patch(':id')
@@ -49,7 +44,7 @@ export class BooksController {
 
   @Delete(':id')
   @HttpCode(204)
-  delete(@Param('id') id: string) {
-    return this.booksService.delete(id);
+  deactivate(@Param('id') id: string) {
+    return this.booksService.deactivate(id);
   }
 }

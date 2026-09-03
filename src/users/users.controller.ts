@@ -26,14 +26,14 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
-
   @Get()
   findAll(@Query() query: UserQueryDto) {
     return this.usersService.findAll(query);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')
@@ -43,7 +43,7 @@ export class UsersController {
 
   @Delete(':id')
   @HttpCode(204)
-  delete(@Param('id') id: string) {
-    return this.usersService.delete(id);
+  deactivate(@Param('id') id: string) {
+    return this.usersService.deactivate(id);
   }
 }

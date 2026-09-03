@@ -11,7 +11,7 @@ export class BookQueryDto extends BasePaginationDto {
     return value;
   })
   @IsBoolean()
-  available?: boolean;
+  isAvailableForLoan?: boolean;
 
   @IsOptional()
   @Transform(({ value }: { value: unknown }) => {
@@ -34,5 +34,5 @@ export class BookQueryDto extends BasePaginationDto {
     return value;
   })
   @IsBoolean()
-  active?: boolean;
+  isActive?: boolean;
 }

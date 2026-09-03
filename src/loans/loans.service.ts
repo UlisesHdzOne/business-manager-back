@@ -72,7 +72,7 @@ export class LoansService {
       throw new NotFoundException('User not found');
     }
 
-    if (!user.active) {
+    if (!user.isActive) {
       throw new BadRequestException('User is inactive');
     }
 
@@ -86,7 +86,7 @@ export class LoansService {
       throw new NotFoundException('Book not found');
     }
 
-    if (!book.active) {
+    if (!book.isActive) {
       throw new BadRequestException('Book is inactive');
     }
 
@@ -94,10 +94,10 @@ export class LoansService {
       const updatedBook = await tx.book.updateMany({
         where: {
           id: dto.bookId,
-          available: true,
+          isAvailableForLoan: true,
         },
         data: {
-          available: false,
+          isAvailableForLoan: false,
         },
       });
 
@@ -117,27 +117,30 @@ export class LoansService {
   }
 
   async returnLoan(id: string): Promise<LoanResponseDto> {
-    const loan = await this.prisma.loan.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!loan) {
-      throw new NotFoundException('Loan not found');
-    }
-
-    if (loan.returnDate) {
-      throw new BadRequestException('Loan is already returned');
-    }
-
     const returnedLoan = await this.prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          bookId: true,
+          returnDate: true,
+        },
+      });
+
+      if (!loan) {
+        throw new NotFoundException('Loan not found');
+      }
+
+      if (loan.returnDate) {
+        throw new BadRequestException('Loan is already returned');
+      }
+
       await tx.book.update({
         where: {
           id: loan.bookId,
         },
         data: {
-          available: true,
+          isAvailableForLoan: true,
         },
       });
 
@@ -148,12 +151,12 @@ export class LoansService {
         data: {
           returnDate: new Date(),
         },
+        select: loanSelect,
       });
     });
 
     return this.toResponse(returnedLoan);
   }
-
   async findAll(query: LoanQueryDto): Promise<{
     loans: LoanResponseDto[];
     meta: PaginationMeta;

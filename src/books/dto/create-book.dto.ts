@@ -1,4 +1,4 @@
-import { IsBoolean, IsString, IsUUID, Length, Matches } from 'class-validator';
+import { IsOptional, IsString, IsUUID, Length, Matches } from 'class-validator';
 
 export class CreateBookDto {
   @IsString({ message: 'El titulo debe ser texto' })
@@ -11,6 +11,7 @@ export class CreateBookDto {
   @IsUUID('4', { message: 'El authorId debe ser un UUID válido' })
   authorId!: string;
 
-  @IsBoolean({ message: 'Disponible debe ser booleano' })
-  available!: boolean;
+  @IsOptional()
+  @IsString({ message: 'La descripción debe ser texto' })
+  description?: string;
 }

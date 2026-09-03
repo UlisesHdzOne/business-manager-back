@@ -1,5 +1,9 @@
 import { Prisma } from '@prisma/client';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -14,7 +18,7 @@ const userSelect = {
   lastName: true,
   email: true,
   phone: true,
-  active: true,
+  isActive: true,
 } satisfies Prisma.UserSelect;
 
 type UserResponseInput = Prisma.UserGetPayload<{
@@ -31,7 +35,7 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {};
 
     if (active !== undefined) {
-      where.active = active;
+      where.isActive = active;
     }
 
     if (name !== undefined) {
@@ -127,17 +131,69 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<UserResponseDto> {
-    const user = await this.prisma.user.update({
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.isActive) {
+      throw new BadRequestException('User must be inactive to be updated');
+    }
+
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: dto,
       select: userSelect,
     });
-    return this.toResponse(user);
+
+    return this.toResponse(updatedUser);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({
+  async deactivate(id: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
       where: { id },
+      select: {
+        id: true,
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new BadRequestException('User is already inactive');
+    }
+
+    const activeLoan = await this.prisma.loan.findFirst({
+      where: {
+        userId: id,
+        returnDate: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (activeLoan) {
+      throw new BadRequestException(
+        'User cannot be deactivated because they have an active loan',
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
     });
   }
 }

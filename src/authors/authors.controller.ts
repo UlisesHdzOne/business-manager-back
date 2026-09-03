@@ -26,14 +26,14 @@ export class AuthorsController {
     return this.authorsService.create(createAuthorDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authorsService.findOne(id);
-  }
-
   @Get()
   findAll(@Query() query: AuthorQueryDto) {
     return this.authorsService.findAll(query);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.authorsService.findOne(id);
   }
 
   @Patch(':id/restore')
@@ -48,7 +48,7 @@ export class AuthorsController {
 
   @Delete(':id')
   @HttpCode(204)
-  delete(@Param('id') id: string) {
-    return this.authorsService.delete(id);
+  deactivate(@Param('id') id: string) {
+    return this.authorsService.deactivate(id);
   }
 }

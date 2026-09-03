@@ -8,13 +8,16 @@ export class BookResponseDto {
   title!: string;
 
   @Expose()
-  authorId!: string | null;
+  authorId!: string;
 
   @Expose()
-  active!: boolean;
+  isActive!: boolean;
 
   @Expose()
-  available!: boolean;
+  isAvailableForLoan!: boolean;
+
+  @Expose()
+  description!: string | null;
 
   @Expose()
   inactiveReason!: string | null;

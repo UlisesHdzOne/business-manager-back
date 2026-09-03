@@ -1,7 +1,7 @@
-import { BaseUserResponseDto } from '@/common/dto/base-user-response.dto';
+import { BasePersonResponseDto } from '@/common/dto/base-person-response.dto';
 import { Expose } from 'class-transformer';
 
-export class AuthorResponseDto extends BaseUserResponseDto {
+export class AuthorResponseDto extends BasePersonResponseDto {
   @Expose()
   active!: boolean;
 }

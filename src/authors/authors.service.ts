@@ -17,7 +17,7 @@ const authorSelect = {
   firstName: true,
   lastName: true,
   email: true,
-  active: true,
+  isActive: true,
 } satisfies Prisma.AuthorSelect;
 
 type AuthorResponseInput = Prisma.AuthorGetPayload<{
@@ -31,9 +31,12 @@ export class AuthorsService {
   private buildWhere(query: AuthorQueryDto): Prisma.AuthorWhereInput {
     const { active, name } = query;
 
-    const where: Prisma.AuthorWhereInput = {
-      active: active ?? true,
-    };
+    const where: Prisma.AuthorWhereInput = {};
+
+    if (active !== undefined) {
+      where.isActive = active;
+    }
+
     if (name !== undefined) {
       where.OR = [
         {
@@ -138,43 +141,25 @@ export class AuthorsService {
       throw new NotFoundException('Author not found');
     }
 
-    if (!author.active) {
-      throw new BadRequestException('Author is inactive');
-    }
-
-    const data: Prisma.AuthorUpdateInput = {};
-
-    if (dto.firstName !== undefined && dto.firstName !== author.firstName) {
-      data.firstName = dto.firstName;
-    }
-
-    if (dto.lastName !== undefined && dto.lastName !== author.lastName) {
-      data.lastName = dto.lastName;
-    }
-
-    if (dto.email !== undefined && dto.email !== author.email) {
-      data.email = dto.email;
-    }
-
-    if (Object.keys(data).length === 0) {
-      throw new BadRequestException('No changes detected');
+    if (author.isActive) {
+      throw new BadRequestException('Author must be inactive to be updated');
     }
 
     const updatedAuthor = await this.prisma.author.update({
       where: { id },
-      data,
+      data: dto,
       select: authorSelect,
     });
 
     return this.toResponse(updatedAuthor);
   }
 
-  async delete(id: string): Promise<void> {
+  async deactivate(id: string): Promise<void> {
     const author = await this.prisma.author.findUnique({
       where: { id },
       select: {
         id: true,
-        active: true,
+        isActive: true,
       },
     });
 
@@ -182,31 +167,35 @@ export class AuthorsService {
       throw new NotFoundException('Author not found');
     }
 
-    if (!author.active) {
+    if (!author.isActive) {
       throw new BadRequestException('Author is already inactive');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.author.update({
-        where: { id },
-        data: {
-          active: false,
-        },
-      }),
-
-      this.prisma.book.updateMany({
-        where: {
+    const activeLoan = await this.prisma.loan.findFirst({
+      where: {
+        returnDate: null,
+        book: {
           authorId: id,
-          active: true,
         },
-        data: {
-          active: false,
-          inactiveReason: 'AUTHOR_INACTIVE',
-        },
-      }),
-    ]);
-  }
+      },
+      select: {
+        id: true,
+      },
+    });
 
+    if (activeLoan) {
+      throw new BadRequestException(
+        'Author cannot be deactivated because one or more books are currently on loan',
+      );
+    }
+
+    await this.prisma.author.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+    });
+  }
   async restore(id: string): Promise<AuthorResponseDto> {
     const author = await this.prisma.author.findUnique({
       where: { id },
@@ -217,35 +206,18 @@ export class AuthorsService {
       throw new NotFoundException('Author not found');
     }
 
-    if (author.active) {
+    if (author.isActive) {
       throw new BadRequestException('Author is already active');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.author.update({
-        where: { id },
-        data: {
-          active: true,
-        },
-      }),
-
-      this.prisma.book.updateMany({
-        where: {
-          authorId: id,
-          inactiveReason: 'AUTHOR_INACTIVE',
-        },
-        data: {
-          active: true,
-          inactiveReason: null,
-        },
-      }),
-    ]);
-
-    const restoredAuthor = await this.prisma.author.findUnique({
+    const restoredAuthor = await this.prisma.author.update({
       where: { id },
+      data: {
+        isActive: true,
+      },
       select: authorSelect,
     });
 
-    return this.toResponse(restoredAuthor!);
+    return this.toResponse(restoredAuthor);
   }
 }

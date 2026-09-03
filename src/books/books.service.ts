@@ -16,8 +16,9 @@ const bookSelect = {
   id: true,
   title: true,
   authorId: true,
-  active: true,
-  available: true,
+  isActive: true,
+  isAvailableForLoan: true,
+  description: true,
   inactiveReason: true,
 } satisfies Prisma.BookSelect;
 
@@ -30,16 +31,16 @@ export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
 
   private buildWhere(query: BookQueryDto): Prisma.BookWhereInput {
-    const { active, available, title } = query;
+    const { isActive, isAvailableForLoan, title } = query;
 
     const where: Prisma.BookWhereInput = {};
 
-    if (active !== undefined) {
-      where.active = active;
+    if (isActive !== undefined) {
+      where.isActive = isActive;
     }
 
-    if (available !== undefined) {
-      where.available = available;
+    if (isAvailableForLoan !== undefined) {
+      where.isAvailableForLoan = isAvailableForLoan;
     }
 
     if (title !== undefined) {
@@ -72,7 +73,7 @@ export class BooksService {
     return this.prisma.author.findUnique({
       where: {
         id,
-        active: true,
+        isActive: true,
       },
       select: {
         id: true,
@@ -124,13 +125,16 @@ export class BooksService {
 
     const book = await this.prisma.book.create({
       data: dto,
+      select: bookSelect,
     });
     return this.toResponse(book);
   }
 
   async findOne(id: string): Promise<BookResponseDto> {
-    const book = await this.prisma.book.findUnique({
-      where: { id },
+    const book = await this.prisma.book.findFirst({
+      where: {
+        id,
+      },
       select: bookSelect,
     });
 
@@ -151,6 +155,10 @@ export class BooksService {
       throw new NotFoundException('Book not found');
     }
 
+    if (book.isActive) {
+      throw new BadRequestException('Book must be inactive to update');
+    }
+
     if (dto.authorId !== undefined) {
       const author = await this.findActiveAuthor(dto.authorId);
 
@@ -158,20 +166,22 @@ export class BooksService {
         throw new NotFoundException('Author not found');
       }
     }
+
     const updatedBook = await this.prisma.book.update({
       where: { id },
       data: dto,
+      select: bookSelect,
     });
 
     return this.toResponse(updatedBook);
   }
 
-  async delete(id: string): Promise<void> {
+  async deactivate(id: string): Promise<void> {
     const book = await this.prisma.book.findUnique({
       where: { id },
       select: {
         id: true,
-        active: true,
+        isActive: true,
       },
     });
 
@@ -179,56 +189,32 @@ export class BooksService {
       throw new NotFoundException('Book not found');
     }
 
-    if (!book.active) {
+    if (!book.isActive) {
       throw new BadRequestException('Book is already inactive');
+    }
+
+    const activeLoan = await this.prisma.loan.findFirst({
+      where: {
+        bookId: id,
+        returnDate: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (activeLoan) {
+      throw new BadRequestException(
+        'Book cannot be deactivated because it is currently on loan',
+      );
     }
 
     await this.prisma.book.update({
       where: { id },
       data: {
-        active: false,
+        isActive: false,
         inactiveReason: 'MANUAL',
       },
     });
-  }
-
-  async restore(id: string): Promise<BookResponseDto> {
-    const book = await this.prisma.book.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        active: true,
-        authorId: true,
-      },
-    });
-
-    if (!book) {
-      throw new NotFoundException('Book not found');
-    }
-
-    if (book.active) {
-      throw new BadRequestException('Book is already active');
-    }
-
-    if (book.authorId) {
-      const author = await this.findActiveAuthor(book.authorId);
-
-      if (!author) {
-        throw new BadRequestException(
-          'Book cannot be restored because the author is inactive',
-        );
-      }
-    }
-
-    const restoredBook = await this.prisma.book.update({
-      where: { id },
-      data: {
-        active: true,
-        inactiveReason: null,
-      },
-      select: bookSelect,
-    });
-
-    return this.toResponse(restoredBook);
   }
 }

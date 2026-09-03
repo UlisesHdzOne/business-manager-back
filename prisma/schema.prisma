@@ -7,57 +7,56 @@ datasource db {
 }
 
 enum BookInactiveReason {
-  AUTHOR_INACTIVE
   MANUAL
 }
 
 model Book {
-  id             String              @id @default(uuid())
-  title          String
-  authorId       String?
-  active         Boolean             @default(true)
-  inactiveReason BookInactiveReason?
-  available      Boolean             @default(true)
-  description    String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @default(now()) @updatedAt
+  id                  String              @id @default(uuid())
+  title               String
+  authorId            String
+  isActive            Boolean             @default(true)
+  inactiveReason      BookInactiveReason?
+  isAvailableForLoan  Boolean             @default(true)
+  description         String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now()) @updatedAt
 
-  author         Author? @relation(fields: [authorId], references: [id])
-  loans          Loan[]
+  author              Author @relation(fields: [authorId], references: [id])
+  loans               Loan[]
 }
 
 model User {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id                  String   @id @default(uuid())
+  firstName           String
+  lastName            String
+  email               String   @unique
+  phone               String   @unique
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
 
-  loans     Loan[]
+  loans               Loan[]
 }
 
 model Author {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  email     String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id                  String   @id @default(uuid())
+  firstName           String
+  lastName            String
+  email               String   @unique
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
 
-  books     Book[]
+  books               Book[]
 }
 
 model Loan {
-  id         String    @id @default(uuid())
-  userId     String
-  bookId     String
-  loanDate   DateTime  @default(now())
-  returnDate DateTime?
+  id                  String    @id @default(uuid())
+  userId              String
+  bookId              String
+  loanDate            DateTime  @default(now())
+  returnDate          DateTime?
 
-  user       User @relation(fields: [userId], references: [id])
-  book       Book @relation(fields: [bookId], references: [id])
+  user                User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book                Book @relation(fields: [bookId], references: [id])
 }
