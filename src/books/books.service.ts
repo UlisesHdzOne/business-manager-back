@@ -11,6 +11,7 @@ import { UpdateBookDto } from './dto/update-book.dto';
 import { BookQueryDto } from './dto/book-query.dto';
 import { BookResponseDto } from './dto/book-response.dto';
 import { PaginationMeta } from '@/common/dto/pagination-meta.type';
+import { BookSortBy } from './enums/book-sort-by.enum';
 
 const bookSelect = {
   id: true,
@@ -57,6 +58,14 @@ export class BooksService {
     query: BookQueryDto,
   ): Prisma.BookOrderByWithRelationInput {
     const { sortBy, order } = query;
+
+    if (sortBy === BookSortBy.AUTHOR) {
+      return {
+        author: {
+          lastName: order,
+        },
+      };
+    }
 
     return {
       [sortBy]: order,
@@ -216,5 +225,31 @@ export class BooksService {
         inactiveReason: 'MANUAL',
       },
     });
+  }
+
+  async restore(id: string): Promise<BookResponseDto> {
+    const book = await this.prisma.book.findUnique({
+      where: { id },
+      select: bookSelect,
+    });
+
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
+
+    if (book.isActive) {
+      throw new BadRequestException('Book is already active');
+    }
+
+    const restoredBook = await this.prisma.book.update({
+      where: { id },
+      data: {
+        isActive: true,
+        inactiveReason: null,
+      },
+      select: bookSelect,
+    });
+
+    return this.toResponse(restoredBook);
   }
 }

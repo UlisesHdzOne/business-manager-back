@@ -196,4 +196,29 @@ export class UsersService {
       },
     });
   }
+
+  async restore(id: string): Promise<UserResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: userSelect,
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.isActive) {
+      throw new BadRequestException('User is already active');
+    }
+
+    const restoredUser = await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: true,
+      },
+      select: userSelect,
+    });
+
+    return this.toResponse(restoredUser);
+  }
 }

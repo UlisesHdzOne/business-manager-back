@@ -4,4 +4,7 @@ import { Expose } from 'class-transformer';
 export class UserResponseDto extends BasePersonResponseDto {
   @Expose()
   phone!: string;
+
+  @Expose()
+  isActive!: boolean;
 }

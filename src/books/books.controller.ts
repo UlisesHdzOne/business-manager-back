@@ -15,7 +15,6 @@ import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { BookQueryDto } from './dto/book-query.dto';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
-import { BookResponseDto } from './dto/book-response.dto';
 
 @UseInterceptors(ResponseInterceptor)
 @Controller('books')
@@ -35,6 +34,11 @@ export class BooksController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.booksService.findOne(id);
+  }
+
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.booksService.restore(id);
   }
 
   @Patch(':id')

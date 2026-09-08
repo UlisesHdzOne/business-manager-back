@@ -157,6 +157,7 @@ export class LoansService {
 
     return this.toResponse(returnedLoan);
   }
+
   async findAll(query: LoanQueryDto): Promise<{
     loans: LoanResponseDto[];
     meta: PaginationMeta;

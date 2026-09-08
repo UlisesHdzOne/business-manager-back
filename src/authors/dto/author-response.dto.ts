@@ -3,5 +3,5 @@ import { Expose } from 'class-transformer';
 
 export class AuthorResponseDto extends BasePersonResponseDto {
   @Expose()
-  active!: boolean;
+  isActive!: boolean;
 }

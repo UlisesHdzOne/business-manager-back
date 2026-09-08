@@ -36,6 +36,11 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.usersService.restore(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);

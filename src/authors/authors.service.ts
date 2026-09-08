@@ -196,6 +196,7 @@ export class AuthorsService {
       },
     });
   }
+
   async restore(id: string): Promise<AuthorResponseDto> {
     const author = await this.prisma.author.findUnique({
       where: { id },
