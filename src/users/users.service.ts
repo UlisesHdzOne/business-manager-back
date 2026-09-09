@@ -20,6 +20,14 @@ const userSelect = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
+const authUserSelect = {
+  id: true,
+  email: true,
+  passwordHash: true,
+  role: true,
+  isActive: true,
+} satisfies Prisma.UserSelect;
+
 type UserResponseInput = Prisma.UserGetPayload<{
   select: typeof userSelect;
 }>;
@@ -85,6 +93,13 @@ export class UsersService {
     return this.toResponse(user);
   }
 
+  async findByEmailForAuth(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: authUserSelect,
+    });
+  }
+
   async findAll(query: UserQueryDto) {
     const { page, limit } = query;
 
@@ -148,12 +163,13 @@ export class UsersService {
     return this.toResponse(user);
   }
 
-  async deactivate(id: string): Promise<void> {
-    await this.prisma.user.update({
+  async deactivate(id: string) {
+    return this.prisma.user.update({
       where: { id },
       data: {
         isActive: false,
       },
+      select: userSelect,
     });
   }
 }

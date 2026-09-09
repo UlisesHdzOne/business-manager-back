@@ -5,7 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 @Injectable()
 export class PrismaService extends PrismaClient {
   constructor() {
-    console.log(process.env.DATABASE_URL);
+    //console.log(process.env.DATABASE_URL);
 
     super({
       adapter: new PrismaPg({
