@@ -147,4 +147,13 @@ export class UsersService {
 
     return this.toResponse(user);
   }
+
+  async deactivate(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+    });
+  }
 }

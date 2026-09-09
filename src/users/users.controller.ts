@@ -35,4 +35,9 @@ export class UsersController {
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
+
+  @Patch(':id/deactivate')
+  deactivate(@Param('id') id: string) {
+    return this.usersService.deactivate(id);
+  }
 }
