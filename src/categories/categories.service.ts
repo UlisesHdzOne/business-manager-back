@@ -4,6 +4,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { CategoryResponseDto } from './dto/category-response.dto';
+import { CategoryQueryDto } from './dto/category-query.dto';
 
 const categorySelect = {
   id: true,
@@ -28,6 +29,31 @@ export class CategoriesService {
     });
   }
 
+  private buildWhere(query: CategoryQueryDto): Prisma.CategoryWhereInput {
+    const where: Prisma.CategoryWhereInput = {};
+
+    if (query.isActive !== undefined) {
+      where.isActive = query.isActive;
+    }
+
+    if (query.name) {
+      where.name = {
+        contains: query.name,
+        mode: 'insensitive',
+      };
+    }
+
+    return where;
+  }
+
+  private buildOrderBy(
+    query: CategoryQueryDto,
+  ): Prisma.CategoryOrderByWithRelationInput {
+    return {
+      [query.sortBy]: query.order,
+    };
+  }
+
   async create(createCategoryDto: CreateCategoryDto) {
     const category = await this.prisma.category.create({
       data: createCategoryDto,
@@ -35,5 +61,40 @@ export class CategoriesService {
     });
 
     return this.toResponse(category);
+  }
+
+  async findAll(query: CategoryQueryDto) {
+    const { page, limit } = query;
+
+    const where = this.buildWhere(query);
+    const orderBy = this.buildOrderBy(query);
+
+    const [categories, total] = await Promise.all([
+      this.prisma.category.findMany({
+        select: categorySelect,
+        where,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.category.count({
+        where,
+      }),
+    ]);
+
+    const lastPage = Math.max(1, Math.ceil(total / limit));
+
+    const meta = {
+      total,
+      page,
+      limit,
+      lastPage,
+    };
+
+    const categoriesResponse = categories.map((category) =>
+      this.toResponse(category),
+    );
+
+    return { categories: categoriesResponse, meta };
   }
 }
