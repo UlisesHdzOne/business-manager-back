@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Roles } from '@/auth/decorators/roles.decorator';
-import { UpdateCategoryDto } from './dto/category-user.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Controller('categories')
 export class CategoriesController {
@@ -48,5 +48,12 @@ export class CategoriesController {
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
     return this.categoriesService.update(id, updateCategoryDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/deactivate')
+  deactivate(@Param('id') id: string) {
+    return this.categoriesService.deactivate(id);
   }
 }
