@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
+import { UserQueryDto } from './dto/user-query.dto';
 
 const userSelect = {
   id: true,
@@ -32,6 +33,41 @@ export class UsersService {
     });
   }
 
+  private buildWhere(query: UserQueryDto): Prisma.UserWhereInput {
+    const where: Prisma.UserWhereInput = {};
+
+    if (query.isActive !== undefined) {
+      where.isActive = query.isActive;
+    }
+
+    if (query.name) {
+      where.OR = [
+        {
+          firstName: {
+            contains: query.name,
+            mode: 'insensitive',
+          },
+        },
+        {
+          lastName: {
+            contains: query.name,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    return where;
+  }
+
+  private buildOrderBy(
+    query: UserQueryDto,
+  ): Prisma.UserOrderByWithRelationInput {
+    return {
+      [query.sortBy]: query.order,
+    };
+  }
+
   async create(createUserDto: CreateUserDto) {
     const { password, ...userData } = createUserDto;
 
@@ -46,5 +82,35 @@ export class UsersService {
     });
 
     return this.toResponse(user);
+  }
+
+  async findAll(query: UserQueryDto) {
+    const { page, limit } = query;
+
+    const where = this.buildWhere(query);
+    const orderBy = this.buildOrderBy(query);
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        select: userSelect,
+        where,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.user.count({
+        where,
+      }),
+    ]);
+    const lastPage = Math.max(1, Math.ceil(total / limit));
+    const meta = {
+      total,
+      page,
+      limit,
+      lastPage,
+    };
+
+    const usersResponse = users.map((user) => this.toResponse(user));
+    return { users: usersResponse, meta };
   }
 }
