@@ -6,6 +6,7 @@ import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
 import { UserQueryDto } from './dto/user-query.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const userSelect = {
   id: true,
@@ -123,6 +124,26 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    return this.toResponse(user);
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const { password, ...userData } = updateUserDto;
+
+    const data: Prisma.UserUpdateInput = {
+      ...userData,
+    };
+
+    if (password) {
+      data.passwordHash = await bcrypt.hash(password, 10);
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data,
+      select: userSelect,
+    });
 
     return this.toResponse(user);
   }
