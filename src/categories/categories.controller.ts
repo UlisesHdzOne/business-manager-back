@@ -4,6 +4,7 @@ import {
   Param,
   Get,
   Post,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Roles } from '@/auth/decorators/roles.decorator';
+import { UpdateCategoryDto } from './dto/category-user.dto';
 
 @Controller('categories')
 export class CategoriesController {
@@ -36,5 +38,15 @@ export class CategoriesController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
+    return this.categoriesService.update(id, updateCategoryDto);
   }
 }

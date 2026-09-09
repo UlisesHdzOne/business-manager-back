@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
+import { UpdateCategoryDto } from './dto/category-user.dto';
 
 const categorySelect = {
   id: true,
@@ -106,6 +107,16 @@ export class CategoriesService {
     if (!category) {
       throw new NotFoundException('Category not found');
     }
+
+    return this.toResponse(category);
+  }
+
+  async update(id: string, updateCategoryDto: UpdateCategoryDto) {
+    const category = await this.prisma.category.update({
+      where: { id },
+      data: updateCategoryDto,
+      select: categorySelect,
+    });
 
     return this.toResponse(category);
   }
