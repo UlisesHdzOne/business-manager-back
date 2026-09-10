@@ -3,11 +3,6 @@ import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 
-const uniqueConstraintMessages: Record<string, string> = {
-  email: 'The email is already registered',
-  phone: 'The phone is already registered',
-};
-
 const prismaErrors: Record<
   string,
   {
@@ -49,9 +44,22 @@ function getUniqueConstraintField(
     return undefined;
   }
 
-  const match = originalMessage.match(/unique constraint "User_(.+?)_key"/);
+  const match = originalMessage.match(/unique constraint "([^"]+)_key"/);
 
-  return match?.[1];
+  return match?.[1]?.split('_').pop();
+}
+
+function formatUniqueConstraintMessage(field?: string): string {
+  if (!field) {
+    return 'A unique constraint was violated';
+  }
+
+  const formattedField = field
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/_/g, ' ')
+    .toLowerCase();
+
+  return `The ${formattedField} already exists`;
 }
 
 @Catch(Prisma.PrismaClientKnownRequestError)
@@ -65,12 +73,9 @@ export class PrismaFilter implements ExceptionFilter {
     if (exception.code === 'P2002') {
       const field = getUniqueConstraintField(exception);
 
-      const message =
-        field && uniqueConstraintMessages[field]
-          ? uniqueConstraintMessages[field]
-          : 'A unique constraint was violated';
-
-      return sendError(request, response, 409, [message]);
+      return sendError(request, response, 409, [
+        formatUniqueConstraintMessage(field),
+      ]);
     }
 
     const error = prismaErrors[exception.code];
