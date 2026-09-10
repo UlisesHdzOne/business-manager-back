@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { ProductQueryDto } from './dto/product-query.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 const productSelect = {
   id: true,
@@ -133,6 +134,30 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
+
+    return this.toResponse(product);
+  }
+
+  async update(id: string, updateProductDto: UpdateProductDto) {
+    if (updateProductDto.categoryId) {
+      const category = await this.prisma.category.findUnique({
+        where: { id: updateProductDto.categoryId },
+      });
+
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+
+      if (!category.isActive) {
+        throw new BadRequestException('Category is inactive');
+      }
+    }
+
+    const product = await this.prisma.product.update({
+      where: { id },
+      data: updateProductDto,
+      select: productSelect,
+    });
 
     return this.toResponse(product);
   }
