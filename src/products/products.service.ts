@@ -123,4 +123,17 @@ export class ProductsService {
     const productResponse = products.map((product) => this.toResponse(product));
     return { products: productResponse, meta };
   }
+
+  async findOne(id: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      select: productSelect,
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return this.toResponse(product);
+  }
 }
