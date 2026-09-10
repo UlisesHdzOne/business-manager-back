@@ -161,4 +161,16 @@ export class ProductsService {
 
     return this.toResponse(product);
   }
+
+  async deactivate(id: string) {
+    const product = await this.prisma.product.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+      select: productSelect,
+    });
+
+    return this.toResponse(product);
+  }
 }
