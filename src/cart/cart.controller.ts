@@ -6,6 +6,7 @@ import {
   Post,
   Param,
   UseGuards,
+  Delete,
 } from '@nestjs/common';
 
 import { CartService } from './cart.service';
@@ -47,5 +48,13 @@ export class CartController {
       productId,
       updateCartItemDto.quantity,
     );
+  }
+
+  @Delete('items/:productId')
+  removeItem(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('productId') productId: string,
+  ) {
+    return this.cartService.removeItem(user.id, productId);
   }
 }

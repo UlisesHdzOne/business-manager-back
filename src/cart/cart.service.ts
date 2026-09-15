@@ -199,4 +199,44 @@ export class CartService {
 
     return this.toResponse(updatedCart);
   }
+
+  async removeItem(userId: string, productId: string) {
+    const cart = await this.prisma.cart.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('El carrito no existe');
+    }
+
+    const cartItem = await this.prisma.cartItem.findUnique({
+      where: {
+        cartId_productId: {
+          cartId: cart.id,
+          productId,
+        },
+      },
+    });
+
+    if (!cartItem) {
+      throw new NotFoundException('El producto no está en el carrito');
+    }
+
+    await this.prisma.cartItem.delete({
+      where: {
+        id: cartItem.id,
+      },
+    });
+
+    const updatedCart = await this.prisma.cart.findUniqueOrThrow({
+      where: {
+        id: cart.id,
+      },
+      include: cartInclude,
+    });
+
+    return this.toResponse(updatedCart);
+  }
 }
