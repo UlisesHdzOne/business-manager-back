@@ -152,4 +152,20 @@ export class OrdersService {
 
     return this.toResponse(order);
   }
+
+  async getOrderById(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId,
+      },
+      include: orderInclude,
+    });
+
+    if (!order) {
+      throw new NotFoundException('La orden no existe');
+    }
+
+    return this.toResponse(order);
+  }
 }
