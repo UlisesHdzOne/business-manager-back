@@ -239,4 +239,31 @@ export class CartService {
 
     return this.toResponse(updatedCart);
   }
+
+  async clearCart(userId: string) {
+    const cart = await this.prisma.cart.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('El carrito no existe');
+    }
+
+    await this.prisma.cartItem.deleteMany({
+      where: {
+        cartId: cart.id,
+      },
+    });
+
+    const updatedCart = await this.prisma.cart.findUniqueOrThrow({
+      where: {
+        id: cart.id,
+      },
+      include: cartInclude,
+    });
+
+    return this.toResponse(updatedCart);
+  }
 }
