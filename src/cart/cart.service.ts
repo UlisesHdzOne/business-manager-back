@@ -143,4 +143,60 @@ export class CartService {
 
     return this.toResponse(updatedCart);
   }
+
+  async updateItem(userId: string, productId: string, quantity: number) {
+    const cart = await this.prisma.cart.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('El carrito no existe');
+    }
+
+    const cartItem = await this.prisma.cartItem.findUnique({
+      where: {
+        cartId_productId: {
+          cartId: cart.id,
+          productId,
+        },
+      },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!cartItem) {
+      throw new NotFoundException('El producto no está en el carrito');
+    }
+
+    if (!cartItem.product.isActive) {
+      throw new BadRequestException('El producto no está disponible');
+    }
+
+    if (quantity > cartItem.product.stock) {
+      throw new BadRequestException(
+        `Stock insuficiente. Disponible: ${cartItem.product.stock}`,
+      );
+    }
+
+    await this.prisma.cartItem.update({
+      where: {
+        id: cartItem.id,
+      },
+      data: {
+        quantity,
+      },
+    });
+
+    const updatedCart = await this.prisma.cart.findUniqueOrThrow({
+      where: {
+        id: cart.id,
+      },
+      include: cartInclude,
+    });
+
+    return this.toResponse(updatedCart);
+  }
 }
