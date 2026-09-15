@@ -1,33 +1,5 @@
+import { ProductResponseDto } from '@/products/dto/product-response.dto';
 import { Expose, Type } from 'class-transformer';
-
-class CartItemProductResponseDto {
-  @Expose()
-  id!: string;
-
-  @Expose()
-  name!: string;
-
-  @Expose()
-  description!: string | null;
-
-  @Expose()
-  price!: number;
-
-  @Expose()
-  stock!: number;
-
-  @Expose()
-  isActive!: boolean;
-
-  @Expose()
-  categoryId!: string;
-
-  @Expose()
-  createdAt!: Date;
-
-  @Expose()
-  updatedAt!: Date;
-}
 
 class CartItemResponseDto {
   @Expose()
@@ -49,8 +21,8 @@ class CartItemResponseDto {
   updatedAt!: Date;
 
   @Expose()
-  @Type(() => CartItemProductResponseDto)
-  product!: CartItemProductResponseDto;
+  @Type(() => ProductResponseDto)
+  product!: ProductResponseDto;
 }
 
 export class CartResponseDto {

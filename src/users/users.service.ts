@@ -7,6 +7,10 @@ import { UserResponseDto } from './dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  getPagination,
+  getPaginationMeta,
+} from '@/common/pagination/pagination.util';
 
 const userSelect = {
   id: true,
@@ -105,26 +109,22 @@ export class UsersService {
 
     const where = this.buildWhere(query);
     const orderBy = this.buildOrderBy(query);
+    const { skip, take } = getPagination(page, limit);
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         select: userSelect,
         where,
         orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip,
+        take,
       }),
       this.prisma.user.count({
         where,
       }),
     ]);
-    const lastPage = Math.max(1, Math.ceil(total / limit));
-    const meta = {
-      total,
-      page,
-      limit,
-      lastPage,
-    };
+
+    const meta = getPaginationMeta(total, page, limit);
 
     const usersResponse = users.map((user) => this.toResponse(user));
     return { users: usersResponse, meta };
@@ -164,12 +164,14 @@ export class UsersService {
   }
 
   async deactivate(id: string) {
-    return this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { id },
       data: {
         isActive: false,
       },
       select: userSelect,
     });
+
+    return this.toResponse(user);
   }
 }

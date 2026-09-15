@@ -1,29 +1,20 @@
-import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { BasePaginationDto } from '@/common/dto/base-pagination.dto';
 import { CategorySortBy } from '../enums/category-sort-by.enum';
+import { TransformBoolean } from '@/common/decorators/transform-boolean.decorator';
+import { TransformTrim } from '@/common/decorators/transform-trim.decorator';
 
 export class CategoryQueryDto extends BasePaginationDto {
   @IsEnum(CategorySortBy)
   sortBy: CategorySortBy = CategorySortBy.CREATED_AT;
 
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @TransformBoolean()
   @IsBoolean()
   isActive?: boolean;
 
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (typeof value !== 'string') return value;
-
-    const name = value.trim();
-
-    return name === '' ? undefined : name;
-  })
+  @TransformTrim()
   @IsString()
   name?: string;
 }

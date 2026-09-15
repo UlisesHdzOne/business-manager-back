@@ -10,6 +10,10 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  getPagination,
+  getPaginationMeta,
+} from '@/common/pagination/pagination.util';
 
 const productSelect = {
   id: true,
@@ -73,9 +77,9 @@ export class ProductsService {
     };
   }
 
-  async create(createProductDto: CreateProductDto) {
+  private async findActiveCategoryOrThrow(categoryId: string) {
     const category = await this.prisma.category.findUnique({
-      where: { id: createProductDto.categoryId },
+      where: { id: categoryId },
     });
 
     if (!category) {
@@ -85,6 +89,12 @@ export class ProductsService {
     if (!category.isActive) {
       throw new BadRequestException('Category is inactive');
     }
+
+    return category;
+  }
+
+  async create(createProductDto: CreateProductDto) {
+    await this.findActiveCategoryOrThrow(createProductDto.categoryId);
 
     const product = await this.prisma.product.create({
       data: createProductDto,
@@ -98,28 +108,22 @@ export class ProductsService {
 
     const where = this.buildWhere(query);
     const orderBy = this.buildOrderBy(query);
+    const { skip, take } = getPagination(page, limit);
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         select: productSelect,
         where,
         orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip,
+        take,
       }),
       this.prisma.product.count({
         where,
       }),
     ]);
 
-    const lastPage = Math.max(1, Math.ceil(total / limit));
-
-    const meta = {
-      total,
-      page,
-      limit,
-      lastPage,
-    };
+    const meta = getPaginationMeta(total, page, limit);
 
     const productResponse = products.map((product) => this.toResponse(product));
     return { products: productResponse, meta };
@@ -140,17 +144,7 @@ export class ProductsService {
 
   async update(id: string, updateProductDto: UpdateProductDto) {
     if (updateProductDto.categoryId) {
-      const category = await this.prisma.category.findUnique({
-        where: { id: updateProductDto.categoryId },
-      });
-
-      if (!category) {
-        throw new NotFoundException('Category not found');
-      }
-
-      if (!category.isActive) {
-        throw new BadRequestException('Category is inactive');
-      }
+      await this.findActiveCategoryOrThrow(updateProductDto.categoryId);
     }
 
     const product = await this.prisma.product.update({

@@ -6,6 +6,10 @@ import { plainToInstance } from 'class-transformer';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import {
+  getPagination,
+  getPaginationMeta,
+} from '@/common/pagination/pagination.util';
 
 const categorySelect = {
   id: true,
@@ -69,28 +73,22 @@ export class CategoriesService {
 
     const where = this.buildWhere(query);
     const orderBy = this.buildOrderBy(query);
+    const { skip, take } = getPagination(page, limit);
 
     const [categories, total] = await Promise.all([
       this.prisma.category.findMany({
         select: categorySelect,
         where,
         orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip,
+        take,
       }),
       this.prisma.category.count({
         where,
       }),
     ]);
 
-    const lastPage = Math.max(1, Math.ceil(total / limit));
-
-    const meta = {
-      total,
-      page,
-      limit,
-      lastPage,
-    };
+    const meta = getPaginationMeta(total, page, limit);
 
     const categoriesResponse = categories.map((category) =>
       this.toResponse(category),
